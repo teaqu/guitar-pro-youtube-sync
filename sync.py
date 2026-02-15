@@ -88,8 +88,13 @@ def select_video_entry(entries: list[dict], video_index: int | None = None) -> d
     return entry
 
 
-def download_youtube_audio(video_id: str, output_path: Path) -> Path:
-    """Download YouTube video and extract MP3 audio."""
+def download_youtube_audio(video_id: str, output_path: Path, trim_start: float = 0.0) -> Path:
+    """Download YouTube video and extract MP3 audio.
+
+    Args:
+        trim_start: Trim audio to start at this timestamp (seconds).
+                    Used to skip the video intro before measure 1.
+    """
     if output_path.exists():
         print(f"  Audio already exists: {output_path}")
         return output_path
@@ -123,6 +128,20 @@ def download_youtube_audio(video_id: str, output_path: Path) -> Path:
         else:
             f.rename(output_path)
         break
+
+    # Trim audio to start at measure 1 (skip video intro)
+    if trim_start > 0 and output_path.exists():
+        trimmed = output_path.parent / ".tmp_trimmed.mp3"
+        print(f"  Trimming audio: skipping first {trim_start:.2f}s of video intro")
+        trim_result = subprocess.run(
+            ["ffmpeg", "-y", "-ss", str(trim_start), "-i", str(output_path),
+             "-c", "copy", str(trimmed)],
+            capture_output=True, timeout=120,
+        )
+        if trim_result.returncode == 0 and trimmed.exists():
+            trimmed.rename(output_path)
+        elif trimmed.exists():
+            trimmed.unlink()
 
     print(f"  Audio saved: {output_path}")
     return output_path
@@ -349,8 +368,9 @@ def sync_gp_file(gp_file: Path, points: list[float], output_path: Path, mp3_path
     )
 
     if has_audio and mp3_data:
-        frame_padding = round(points[0] * GP8_INTERNAL_SAMPLE_RATE) if points else 0
-        print(f"  Frame padding: {frame_padding} ({points[0]:.3f}s)")
+        # Frame padding is 0 because we trim the audio to start at measure 1
+        frame_padding = 0
+        print(f"  Frame padding: {frame_padding} (audio trimmed to start at measure 1)")
 
         # 2. Remove existing BackingTrack and Assets if present
         xml = re.sub(r'<BackingTrack>.*?</BackingTrack>\s*', '', xml, flags=re.DOTALL)
@@ -505,11 +525,12 @@ Examples:
     # Output goes next to the original GP file
     gp_dir = gp_file.parent
 
-    # Step 4: Download YouTube audio
+    # Step 4: Download YouTube audio (trimmed to start at measure 1)
     print("\n[4/5] Downloading YouTube audio...")
     audio_path = gp_dir / ".tmp_audio.mp3"
+    trim_start = points[0] if points else 0.0
     try:
-        download_youtube_audio(video_id, audio_path)
+        download_youtube_audio(video_id, audio_path, trim_start=trim_start)
     except Exception as e:
         print(f"  WARNING: Audio download failed: {e}")
         print("  Continuing without audio...")
