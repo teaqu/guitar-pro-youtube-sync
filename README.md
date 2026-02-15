@@ -55,11 +55,11 @@ pip install yt-dlp
 
 ### Basic sync
 
-```bash
-python sync.py --song <SONGSTERR_SONG_ID> --gp-file <path_to_file.gp>
-```
+You can pass either a Songsterr URL or just the song ID:
 
-The Songsterr song ID is the number at the end of a Songsterr URL. For example, `https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063` has song ID **23063**.
+```bash
+python sync.py --song "https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063" --gp-file parisienne-walkways.gp
+```
 
 ```bash
 python sync.py --song 23063 --gp-file parisienne-walkways.gp
@@ -141,8 +141,8 @@ python sync.py --song 23063 --gp-file song.gp --video-index 2
 
 The output file is a standard Guitar Pro 7/8 file that opens normally in Guitar Pro with the backing track ready to go.
 
-## Finding Songsterr Song IDs
+## Finding Songs on Songsterr
 
 - Go to [songsterr.com](https://www.songsterr.com) and search for a song
-- The song ID is the number at the end of the URL: `tab-s{SONG_ID}`
-- Or use the Songsterr API directly: `https://www.songsterr.com/api/songs?pattern=artist+song`
+- Copy the full URL from your browser, or just the song ID (the number after `tab-s` at the end)
+- You can also search via the API: `https://www.songsterr.com/api/songs?pattern=artist+song`
