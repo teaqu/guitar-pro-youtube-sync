@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+*.gp
+*.mp3
+output/
+.claude/
