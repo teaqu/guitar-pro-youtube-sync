@@ -24,7 +24,7 @@ The result is a `.gp` file you can open in Guitar Pro with a fully synced backin
 
 ### Getting a .gp File
 
-You need the Songsterr exported Guitar Pro file to sync against. You can download `.gp` files from Songsterr with a plus account or using [songsterr-downloader](https://github.com/Metaphysics0/songsterr-downloader).
+You need the Songsterr exported Guitar Pro file to sync against. You can download `.gp` files from Songsterr with a plus account or using [songsterr-downloader.com](https://songsterr-downloader.com) ([GitHub](https://github.com/Metaphysics0/songsterr-downloader)).
 
 ## Installation
 
