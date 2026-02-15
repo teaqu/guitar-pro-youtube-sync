@@ -2,6 +2,8 @@
 
 Sync Guitar Pro tabs with real YouTube audio using Songsterr's timing data. Produces a `.gp` file with embedded audio and per-measure tempo mapping so your tab plays back perfectly in time with the original recording.
 
+![Guitar Pro with synced backing track](screenshot.png)
+
 ## What It Does
 
 Songsterr has crowd-sourced timing data that maps each measure of a song's tab to a specific timestamp in a YouTube video. This tool uses that data to:
@@ -64,6 +66,56 @@ python sync.py --song 23063 --gp-file parisienne-walkways.gp
 ```
 
 This outputs a `parisienne-walkways_synced.gp` file in the same directory with the YouTube audio embedded and all measures tempo-mapped.
+
+<details>
+<summary>Example output</summary>
+
+```
+[1/5] Fetching song metadata...
+Fetching song metadata from: https://www.songsterr.com/api/meta/23063
+  Song: Gary Moore - Parisienne Walkways
+  Latest revision: 5099457
+
+[2/5] Fetching video points...
+Fetching video points from: https://www.songsterr.com/api/video-points/23063/5099457/list
+  Found 23 video entries
+
+[3/5] Selecting video entry...
+  Auto-selected default video: videoId=lUBCXGeK694, points=100
+
+[4/5] Downloading YouTube audio...
+Downloading YouTube audio: https://www.youtube.com/watch?v=lUBCXGeK694
+  Audio saved: .tmp_audio.mp3
+
+[5/5] Syncing GP file...
+  Loading: parisienne-walkways.gp
+  Original tempo: 88.0 BPM
+  Measures: 100
+  Time signatures: 6/8
+  Embedding audio: .tmp_audio.mp3 (6.0 MB)
+  Frame padding: 0 (0.000s)
+  Embedded audio at: Content/Assets/37a06abd-5e4a-00f2-f7ea-64c4e20f3796.mp3
+  Cleaned up temporary audio file
+
+=== Sync Summary ===
+  Measures: 100
+  Video points: 100
+  BPM range: 79.3 - 189.5
+  Average BPM: 91.4
+  Initial BPM: 90.5
+
+  First 5 measures:
+    Measure 1: 90.5 BPM @ 0.0s
+    Measure 2: 85.3 BPM @ 1.99s
+    Measure 3: 87.0 BPM @ 4.1s
+    Measure 4: 88.7 BPM @ 6.17s
+    Measure 5: 88.2 BPM @ 8.2s
+
+Saved: parisienne-walkways_synced.gp
+Done!
+```
+
+</details>
 
 ### List available videos
 
