@@ -24,7 +24,7 @@ The result is a `.gp` file you can open in Guitar Pro with a fully synced backin
 
 ### Getting a .gp File
 
-You need a Guitar Pro file to sync against. You can download `.gp` files from Songsterr with a plus account or using [songsterr-downloader](https://github.com/Metaphysics0/songsterr-downloader).
+You need the Songsterr exported Guitar Pro file to sync against. You can download `.gp` files from Songsterr with a plus account or using [songsterr-downloader](https://github.com/Metaphysics0/songsterr-downloader).
 
 ## Installation
 
@@ -140,9 +140,3 @@ python sync.py --song 23063 --gp-file song.gp --video-index 2
 5. **Patches the .gp file** (which is a ZIP containing XML) by injecting SyncPoint automations and embedding the MP3 as a backing track asset
 
 The output file is a standard Guitar Pro 7/8 file that opens normally in Guitar Pro with the backing track ready to go.
-
-## Finding Songs on Songsterr
-
-- Go to [songsterr.com](https://www.songsterr.com) and search for a song
-- Copy the full URL from your browser, or just the song ID (the number after `tab-s` at the end)
-- You can also search via the API: `https://www.songsterr.com/api/songs?pattern=artist+song`
