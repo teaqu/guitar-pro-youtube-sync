@@ -440,10 +440,12 @@ def main():
         epilog="""
 Examples:
   python sync.py --song 23063 --gp-file my_tab.gp
+  python sync.py --song https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063 --gp-file my_tab.gp
   python sync.py --song 23063 --list-videos
         """,
     )
-    parser.add_argument("--song", type=int, required=True, help="Songsterr song ID")
+    parser.add_argument("--song", type=str, required=True,
+                        help="Songsterr song ID or URL (e.g. 23063 or https://www.songsterr.com/a/wsa/...-tab-s23063)")
     parser.add_argument("--video-index", type=int, default=None,
                         help="Index of the video entry to use (see --list-videos)")
     parser.add_argument("--gp-file", type=str, default=None,
@@ -453,16 +455,28 @@ Examples:
 
     args = parser.parse_args()
 
+    # Parse song ID from URL or raw number
+    song_id_str = args.song.strip()
+    m = re.search(r'-s(\d+)', song_id_str)
+    if m:
+        song_id = int(m.group(1))
+    elif song_id_str.isdigit():
+        song_id = int(song_id_str)
+    else:
+        print(f"  ERROR: Could not parse song ID from: {song_id_str}")
+        print("  Provide a numeric ID or a Songsterr URL (e.g. https://www.songsterr.com/a/wsa/...-tab-s23063)")
+        sys.exit(1)
+
     # Step 1: Get latest revision
     print("\n[1/5] Fetching song metadata...")
-    meta = fetch_song_meta(args.song)
+    meta = fetch_song_meta(song_id)
     revision_id = meta["revisionId"]
     print(f"  Song: {meta['artist']} - {meta['title']}")
     print(f"  Latest revision: {revision_id}")
 
     # Step 2: Fetch video points
     print("\n[2/5] Fetching video points...")
-    entries = fetch_video_points(args.song, revision_id)
+    entries = fetch_video_points(song_id, revision_id)
 
     if args.list_videos:
         list_video_entries(entries)
@@ -484,7 +498,7 @@ Examples:
     if not gp_file or not gp_file.exists():
         print("\n  ERROR: No GP file found!")
         print("  Please provide a GP7/8 file:")
-        print(f"    1. Download from https://www.songsterr.com/a/wsa/-tab-s{args.song}")
+        print(f"    1. Download from https://www.songsterr.com/a/wsa/-tab-s{song_id}")
         print(f"    2. Pass it with --gp-file /path/to/file.gp")
         sys.exit(1)
 
