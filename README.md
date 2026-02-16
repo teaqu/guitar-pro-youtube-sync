@@ -83,6 +83,16 @@ python sync.py --song 23063 --video-index 2
 ```
 I have only tested this with the default track so unsure how well this works.
 
+### Use browser cookies (if YouTube blocks yt-dlp)
+
+If yt-dlp gets blocked by YouTube, you can use cookies from your browser:
+
+```bash
+python sync.py --song 23063 --cookies chrome
+```
+
+Supported browsers: `chrome`, `firefox`, `safari`, `edge`, `brave`, `opera`, `vivaldi`
+
 ### Generate a GP file only (no sync)
 
 If you don't want the audio you can also use use `gen-gp.py` directly to generate a Guitar Pro file from Songsterr without audio syncing:

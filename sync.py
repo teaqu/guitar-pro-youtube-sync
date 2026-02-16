@@ -89,12 +89,13 @@ def select_video_entry(entries: list[dict], video_index: int | None = None) -> d
     return entry
 
 
-def download_youtube_audio(video_id: str, output_path: Path, trim_start: float = 0.0) -> Path:
+def download_youtube_audio(video_id: str, output_path: Path, trim_start: float = 0.0, cookies_browser: str | None = None) -> Path:
     """Download YouTube video and extract MP3 audio.
 
     Args:
         trim_start: Trim audio to start at this timestamp (seconds).
                     Used to skip the video intro before measure 1.
+        cookies_browser: Browser to extract cookies from (chrome, firefox, safari, edge, etc.).
     """
     if output_path.exists():
         print(f"  Audio already exists: {output_path}")
@@ -111,8 +112,10 @@ def download_youtube_audio(video_id: str, output_path: Path, trim_start: float =
         "--audio-format", "mp3",
         "--audio-quality", "0",
         "-o", temp_template,
-        url,
     ]
+    if cookies_browser:
+        cmd.extend(["--cookies-from-browser", cookies_browser])
+    cmd.append(url)
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     if result.returncode != 0:
         print(f"  yt-dlp stderr: {result.stderr}")
@@ -464,6 +467,7 @@ Examples:
   python sync.py --song 23063 --gp-file my_tab.gp
   python sync.py --song https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063
   python sync.py --song 23063 --list-videos
+  python sync.py --song 23063 --cookies chrome
         """,
     )
     parser.add_argument("--song", type=str, required=True,
@@ -472,6 +476,8 @@ Examples:
                         help="Index of the video entry to use (see --list-videos)")
     parser.add_argument("--gp-file", type=str, default=None,
                         help="Path to GP7/8 file")
+    parser.add_argument("--cookies", type=str, default=None,
+                        help="Browser to extract cookies from (chrome, firefox, safari, edge, etc.)")
     parser.add_argument("--list-videos", action="store_true",
                         help="List available video entries and exit")
 
@@ -537,7 +543,7 @@ Examples:
     audio_path = gp_dir / ".tmp_audio.mp3"
     trim_start = points[0] if points else 0.0
     try:
-        download_youtube_audio(video_id, audio_path, trim_start=trim_start)
+        download_youtube_audio(video_id, audio_path, trim_start=trim_start, cookies_browser=args.cookies)
     except Exception as e:
         print(f"  WARNING: Audio download failed: {e}")
         print("  Continuing without audio...")
