@@ -1,4 +1,4 @@
-# guitar-pro-youtube-sync
+# Songsterr Downloader and Youtube Sync for Guitar Pro
 
 Generate Guitar Pro tabs from Songsterr and sync them with real YouTube audio. Produces a `.gp` file with embedded audio and per-measure tempo mapping so your tab plays back perfectly in time with the original recording.
 
