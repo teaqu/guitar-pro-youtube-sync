@@ -1,17 +1,18 @@
 # guitar-pro-youtube-sync
 
-Sync Guitar Pro tabs with real YouTube audio using Songsterr's timing data. Produces a `.gp` file with embedded audio and per-measure tempo mapping so your tab plays back perfectly in time with the original recording.
+Generate Guitar Pro tabs from Songsterr and sync them with real YouTube audio. Produces a `.gp` file with embedded audio and per-measure tempo mapping so your tab plays back perfectly in time with the original recording.
 
 ![Guitar Pro with synced backing track](screenshot.png)
 
 ## What It Does
 
-Songsterr has crowd-sourced timing data that maps each measure of a song's tab to a specific timestamp in a YouTube video. This tool uses that data to:
+Songsterr has crowd-sourced timing data that maps each measure of a song's tab to a specific timestamp in a YouTube video. This tool:
 
-1. Fetch measure-level timing points from Songsterr's API
-2. Download the corresponding YouTube audio via `yt-dlp`
-3. Compute per-measure BPMs from the timing data
-4. Embed the audio and SyncPoint automations into a Guitar Pro 7/8 file
+1. **Generates a Guitar Pro file** from Songsterr's tab data (all tracks, instruments, tunings, drum kits, etc.)
+2. Fetches measure-level timing points from Songsterr's API
+3. Downloads the corresponding YouTube audio via `yt-dlp`
+4. Computes per-measure BPMs from the timing data
+5. Embeds the audio and SyncPoint automations into the Guitar Pro file
 
 The result is a `.gp` file you can open in Guitar Pro with a fully synced backing track -- every measure lines up with the real recording.
 
@@ -20,11 +21,6 @@ The result is a `.gp` file you can open in Guitar Pro with a fully synced backin
 - **Python 3.10+**
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** -- for downloading YouTube audio
 - **[ffmpeg](https://ffmpeg.org/)** -- for audio conversion (used by yt-dlp)
-- **A Guitar Pro 7/8 file (.gp)** for the song you want to sync
-
-### Getting a .gp File
-
-You need the Songsterr exported Guitar Pro file to sync against. You can download `.gp` files from Songsterr with a plus account or using [songsterr-downloader.com](https://songsterr-downloader.com) ([GitHub](https://github.com/Metaphysics0/songsterr-downloader)).
 
 ## Installation
 
@@ -53,19 +49,52 @@ pip install yt-dlp
 
 ## Usage
 
-### Basic sync
+### One-command sync
 
-You can pass either a Songsterr URL or just the song ID:
+Pass a Songsterr URL or song ID. The GP file is generated automatically from Songsterr's tab data:
 
 ```bash
-python sync.py --song "https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063" --gp-file parisienne-walkways.gp
+python sync.py --song "https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063"
 ```
 
 ```bash
-python sync.py --song 23063 --gp-file parisienne-walkways.gp
+python sync.py --song 23063
 ```
 
-This outputs a `parisienne-walkways_synced.gp` file in the same directory with the YouTube audio embedded and all measures tempo-mapped.
+This generates `Gary Moore - Parisienne Walkways.gp` and outputs a `Gary Moore - Parisienne Walkways_synced.gp` with the YouTube audio embedded and all measures tempo-mapped.
+
+### Sync with your own GP file
+
+If you already have the Guitar Pro file you'd like to sync instead of generating one. 
+
+```bash
+python sync.py --song 23063 --gp-file my-tab.gp
+```
+
+### List available videos
+
+Some songs have multiple video sources (original, alternative, backing track). List them to pick the best one:
+
+```bash
+python sync.py --song 23063 --list-videos
+```
+
+### Use a specific video
+
+```bash
+python sync.py --song 23063 --video-index 2
+```
+
+### Generate a GP file only (no sync)
+
+Use `gen-gp.py` directly to generate a Guitar Pro file from Songsterr without syncing:
+
+```bash
+python gen-gp.py --song 23063
+python gen-gp.py --song 23063 -o output.gp
+```
+
+This fetches all tracks from Songsterr and produces a `.gp` file compatible with Guitar Pro 7/8, including correct instrument types, tunings, drum kits, track colors, and icons.
 
 <details>
 <summary>Example output</summary>
@@ -81,62 +110,49 @@ Fetching video points from: https://www.songsterr.com/api/video-points/23063/509
   Found 23 video entries
 
 [3/5] Selecting video entry...
-  Auto-selected default video: videoId=lUBCXGeK694, points=100
+  Using entry 0: videoId=ZfgyFok56fE, feature=alternative, points=101
+
+  Generating GP file from Songsterr...
+  Tracks: 9
+  Measures: 100
+  Tempo: 88 BPM
+  Notes: 3870 total, 271 unique
+  Beats: 2994 total, 482 unique
 
 [4/5] Downloading YouTube audio...
-Downloading YouTube audio: https://www.youtube.com/watch?v=lUBCXGeK694
   Audio saved: .tmp_audio.mp3
 
 [5/5] Syncing GP file...
-  Loading: parisienne-walkways.gp
   Original tempo: 88.0 BPM
   Measures: 100
   Time signatures: 6/8
   Embedding audio: .tmp_audio.mp3 (6.0 MB)
-  Frame padding: 0 (0.000s)
-  Embedded audio at: Content/Assets/37a06abd-5e4a-00f2-f7ea-64c4e20f3796.mp3
-  Cleaned up temporary audio file
 
 === Sync Summary ===
   Measures: 100
-  Video points: 100
+  Video points: 101
   BPM range: 79.3 - 189.5
   Average BPM: 91.4
-  Initial BPM: 90.5
 
-  First 5 measures:
-    Measure 1: 90.5 BPM @ 0.0s
-    Measure 2: 85.3 BPM @ 1.99s
-    Measure 3: 87.0 BPM @ 4.1s
-    Measure 4: 88.7 BPM @ 6.17s
-    Measure 5: 88.2 BPM @ 8.2s
-
-Saved: parisienne-walkways_synced.gp
+Saved: Gary Moore - Parisienne Walkways_synced.gp
 Done!
 ```
 
 </details>
 
-### List available videos
-
-Some songs have multiple video sources (original, alternative, backing track). List them to pick the best one:
-
-```bash
-python sync.py --song 23063 --list-videos
-```
-
-### Use a specific video
-
-```bash
-python sync.py --song 23063 --gp-file song.gp --video-index 2
-```
-
 ## How It Works
 
-1. **Fetches metadata** from `songsterr.com/api/meta/{song_id}` to get the latest revision
-2. **Fetches video points** from `songsterr.com/api/video-points/{song_id}/{revision_id}/list` -- an array of timestamps (in seconds) marking where each measure starts in the YouTube video
-3. **Downloads audio** from YouTube using `yt-dlp` and converts to MP3
-4. **Computes BPMs** for each measure by dividing the measure length (in quarter notes, derived from the time signature) by the duration between consecutive video points
-5. **Patches the .gp file** (which is a ZIP containing XML) by injecting SyncPoint automations and embedding the MP3 as a backing track asset
+### GP file generation (`gen-gp.py`)
 
-The output file is a standard Guitar Pro 7/8 file that opens normally in Guitar Pro with the backing track ready to go.
+1. Fetches song metadata and all track data from Songsterr's CDN
+2. Converts Songsterr's JSON format into Guitar Pro's GPIF XML format (notes, beats, bars, rhythms, etc.)
+3. Deduplicates notes and beats for compact file sizes
+4. Handles instrument-specific details: drum kits with neutral clef and MIDI channel 10, string tunings, bends, slides, harmonics, etc.
+5. Packages everything into a `.gp` ZIP archive using `blank.gp` as a template
+
+### Audio sync (`sync.py`)
+
+1. Fetches video points from `songsterr.com/api/video-points/{song_id}/{revision_id}/list` -- timestamps (in seconds) marking where each measure starts in the YouTube video
+2. Downloads audio from YouTube using `yt-dlp` and converts to MP3
+3. Computes per-measure BPMs by dividing the measure length (in quarter notes, derived from the time signature) by the duration between consecutive video points
+4. Patches the `.gp` file (a ZIP containing XML) by injecting SyncPoint automations and embedding the MP3 as a backing track asset

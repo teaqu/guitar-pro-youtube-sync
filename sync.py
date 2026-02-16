@@ -6,6 +6,7 @@ Takes a Songsterr song ID, downloads video points and YouTube audio,
 then retimes a Guitar Pro file to match the real YouTube audio timing.
 
 Usage:
+    python sync.py --song 23063
     python sync.py --song 23063 --gp-file original.gp
     python sync.py --song 23063 --list-videos
 """
@@ -459,8 +460,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  python sync.py --song 23063
   python sync.py --song 23063 --gp-file my_tab.gp
-  python sync.py --song https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063 --gp-file my_tab.gp
+  python sync.py --song https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063
   python sync.py --song 23063 --list-videos
         """,
     )
@@ -509,18 +511,23 @@ Examples:
     video_id = entry["videoId"]
 
     # Resolve GP file
-    gp_file = None
     if args.gp_file:
         gp_file = Path(args.gp_file).resolve()
+        if not gp_file.exists():
+            print(f"\n  ERROR: GP file not found: {gp_file}")
+            sys.exit(1)
     else:
-        gp_file = find_gp_file(Path("."))
-
-    if not gp_file or not gp_file.exists():
-        print("\n  ERROR: No GP file found!")
-        print("  Please provide a GP7/8 file:")
-        print(f"    1. Download from https://www.songsterr.com/a/wsa/-tab-s{song_id}")
-        print(f"    2. Pass it with --gp-file /path/to/file.gp")
-        sys.exit(1)
+        # Auto-generate GP file from Songsterr data
+        print("\n  Generating GP file from Songsterr...")
+        import importlib.util
+        _spec = importlib.util.spec_from_file_location("gen_gp", Path(__file__).parent / "gen-gp.py")
+        _mod = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        gp_meta, tracks = _mod.fetch_all_tracks(song_id)
+        safe = "".join(c if c.isalnum() or c in " -_" else "" for c in
+                       f"{meta['artist']} - {meta['title']}").strip()
+        gp_file = Path(f"{safe or 'output'}.gp").resolve()
+        _mod.generate_gp(tracks, gp_file, gp_meta)
 
     # Output goes next to the original GP file
     gp_dir = gp_file.parent

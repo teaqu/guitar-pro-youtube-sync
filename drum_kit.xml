@@ -1,0 +1,1335 @@
+<InstrumentSet>
+<Name>Drums</Name>
+<Type>drumKit</Type>
+<LineCount>5</LineCount>
+<Elements>
+<Element>
+<Name>Snare</Name>
+<Type>snare</Type>
+<SoundbankName>Master-Snare</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Snare (hit)</Name>
+<StaffLine>3</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>38</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>38</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Snare (side stick)</Name>
+<StaffLine>3</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>37</InputMidiNumbers>
+<OutputRSESound>stick.hit.sidestick</OutputRSESound>
+<OutputMidiNumber>37</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Snare (rim shot)</Name>
+<StaffLine>3</StaffLine>
+<Noteheads>noteheadDiamondWhite noteheadDiamondWhite noteheadDiamondWhite</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>91</InputMidiNumbers>
+<OutputRSESound>stick.hit.rimshot</OutputRSESound>
+<OutputMidiNumber>38</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Charley</Name>
+<Type>hiHat</Type>
+<SoundbankName>Master-Hihat</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Hi-Hat (closed)</Name>
+<StaffLine>-1</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>42</InputMidiNumbers>
+<OutputRSESound>stick.hit.closed</OutputRSESound>
+<OutputMidiNumber>42</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Hi-Hat (half)</Name>
+<StaffLine>-1</StaffLine>
+<Noteheads>noteheadCircleSlash noteheadCircleSlash noteheadCircleSlash</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>92</InputMidiNumbers>
+<OutputRSESound>stick.hit.half</OutputRSESound>
+<OutputMidiNumber>46</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Hi-Hat (open)</Name>
+<StaffLine>-1</StaffLine>
+<Noteheads>noteheadCircleX noteheadCircleX noteheadCircleX</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>46</InputMidiNumbers>
+<OutputRSESound>stick.hit.open</OutputRSESound>
+<OutputMidiNumber>46</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Pedal Hi-Hat (hit)</Name>
+<StaffLine>9</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>44</InputMidiNumbers>
+<OutputRSESound>pedal.hit.pedal</OutputRSESound>
+<OutputMidiNumber>44</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Acoustic Kick Drum</Name>
+<Type>kickDrum</Type>
+<SoundbankName>AcousticKick-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Kick (hit)</Name>
+<StaffLine>8</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>35</InputMidiNumbers>
+<OutputRSESound>pedal.hit.hit</OutputRSESound>
+<OutputMidiNumber>35</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Kick Drum</Name>
+<Type>kickDrum</Type>
+<SoundbankName>Master-Kick</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Kick (hit)</Name>
+<StaffLine>7</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>36</InputMidiNumbers>
+<OutputRSESound>pedal.hit.hit</OutputRSESound>
+<OutputMidiNumber>36</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Tom Very High</Name>
+<Type>tom</Type>
+<SoundbankName>Master-Tom05</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>High Floor Tom (hit)</Name>
+<StaffLine>1</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>50</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>50</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Tom High</Name>
+<Type>tom</Type>
+<SoundbankName>Master-Tom04</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>High Tom (hit)</Name>
+<StaffLine>2</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>48</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>48</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Tom Medium</Name>
+<Type>tom</Type>
+<SoundbankName>Master-Tom03</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Mid Tom (hit)</Name>
+<StaffLine>4</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>47</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>47</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Tom Low</Name>
+<Type>tom</Type>
+<SoundbankName>Master-Tom02</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Low Tom (hit)</Name>
+<StaffLine>5</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>45</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>45</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Tom Very Low</Name>
+<Type>tom</Type>
+<SoundbankName>Master-Tom01</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Very Low Tom (hit)</Name>
+<StaffLine>6</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>43</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>43</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Ride</Name>
+<Type>ride</Type>
+<SoundbankName>Master-Ride</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Ride (edge)</Name>
+<StaffLine>0</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>above</TechniquePlacement>
+<TechniqueSymbol>pictEdgeOfCymbal</TechniqueSymbol>
+<InputMidiNumbers>93</InputMidiNumbers>
+<OutputRSESound>stick.hit.edge</OutputRSESound>
+<OutputMidiNumber>51</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Ride (middle)</Name>
+<StaffLine>0</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>51</InputMidiNumbers>
+<OutputRSESound>stick.hit.mid</OutputRSESound>
+<OutputMidiNumber>51</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Ride (bell)</Name>
+<StaffLine>0</StaffLine>
+<Noteheads>noteheadDiamondWhite noteheadDiamondWhite noteheadDiamondWhite</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>53</InputMidiNumbers>
+<OutputRSESound>stick.hit.bell</OutputRSESound>
+<OutputMidiNumber>53</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Ride (choke)</Name>
+<StaffLine>0</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>articStaccatoAbove</TechniqueSymbol>
+<InputMidiNumbers>94</InputMidiNumbers>
+<OutputRSESound>stick.hit.choke</OutputRSESound>
+<OutputMidiNumber>51</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Splash</Name>
+<Type>splash</Type>
+<SoundbankName>Master-Splash</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Splash (hit)</Name>
+<StaffLine>-2</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>55</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>55</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Splash (choke)</Name>
+<StaffLine>-2</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>articStaccatoAbove</TechniqueSymbol>
+<InputMidiNumbers>95</InputMidiNumbers>
+<OutputRSESound>stick.hit.choke</OutputRSESound>
+<OutputMidiNumber>55</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>China</Name>
+<Type>china</Type>
+<SoundbankName>Master-China</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>China (hit)</Name>
+<StaffLine>-3</StaffLine>
+<Noteheads>noteheadHeavyXHat noteheadHeavyXHat noteheadHeavyXHat</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>52</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>52</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>China (choke)</Name>
+<StaffLine>-3</StaffLine>
+<Noteheads>noteheadHeavyXHat noteheadHeavyXHat noteheadHeavyXHat</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>96</InputMidiNumbers>
+<OutputRSESound>stick.hit.choke</OutputRSESound>
+<OutputMidiNumber>52</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Crash High</Name>
+<Type>crash</Type>
+<SoundbankName>Master-Crash02</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Crash high (hit)</Name>
+<StaffLine>-2</StaffLine>
+<Noteheads>noteheadHeavyX noteheadHeavyX noteheadHeavyX</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>49</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>49</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Crash high (choke)</Name>
+<StaffLine>-2</StaffLine>
+<Noteheads>noteheadHeavyX noteheadHeavyX noteheadHeavyX</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>articStaccatoAbove</TechniqueSymbol>
+<InputMidiNumbers>97</InputMidiNumbers>
+<OutputRSESound>stick.hit.choke</OutputRSESound>
+<OutputMidiNumber>49</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Crash Medium</Name>
+<Type>crash</Type>
+<SoundbankName>Master-Crash01</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Crash medium (hit)</Name>
+<StaffLine>-1</StaffLine>
+<Noteheads>noteheadHeavyX noteheadHeavyX noteheadHeavyX</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>57</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>57</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Crash medium (choke)</Name>
+<StaffLine>-1</StaffLine>
+<Noteheads>noteheadHeavyX noteheadHeavyX noteheadHeavyX</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>articStaccatoAbove</TechniqueSymbol>
+<InputMidiNumbers>98</InputMidiNumbers>
+<OutputRSESound>stick.hit.choke</OutputRSESound>
+<OutputMidiNumber>57</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Cowbell Low</Name>
+<Type>cowbell</Type>
+<SoundbankName>CowbellBig-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Cowbell low (hit)</Name>
+<StaffLine>1</StaffLine>
+<Noteheads>noteheadTriangleUpBlack noteheadTriangleUpHalf noteheadTriangleUpWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>99</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>56</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Cowbell low (tip)</Name>
+<StaffLine>1</StaffLine>
+<Noteheads>noteheadXBlack noteheadXHalf noteheadXWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>100</InputMidiNumbers>
+<OutputRSESound>stick.hit.tip</OutputRSESound>
+<OutputMidiNumber>56</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Cowbell Medium</Name>
+<Type>cowbell</Type>
+<SoundbankName>CowbellMid-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Cowbell medium (hit)</Name>
+<StaffLine>0</StaffLine>
+<Noteheads>noteheadTriangleUpBlack noteheadTriangleUpHalf noteheadTriangleUpWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>56</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>56</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Cowbell medium (tip)</Name>
+<StaffLine>0</StaffLine>
+<Noteheads>noteheadXBlack noteheadXHalf noteheadXWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>101</InputMidiNumbers>
+<OutputRSESound>stick.hit.tip</OutputRSESound>
+<OutputMidiNumber>56</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Cowbell High</Name>
+<Type>cowbell</Type>
+<SoundbankName>CowbellSmall-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Cowbell high (hit)</Name>
+<StaffLine>-1</StaffLine>
+<Noteheads>noteheadTriangleUpBlack noteheadTriangleUpHalf noteheadTriangleUpWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>102</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>56</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Cowbell high (tip)</Name>
+<StaffLine>-1</StaffLine>
+<Noteheads>noteheadXBlack noteheadXHalf noteheadXWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>103</InputMidiNumbers>
+<OutputRSESound>stick.hit.tip</OutputRSESound>
+<OutputMidiNumber>56</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Woodblock Low</Name>
+<Type>woodblock</Type>
+<SoundbankName>WoodblockLow-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Woodblock low (hit)</Name>
+<StaffLine>-9</StaffLine>
+<Noteheads>noteheadTriangleUpBlack noteheadTriangleUpBlack noteheadTriangleUpBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>77</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>77</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Woodblock High</Name>
+<Type>woodblock</Type>
+<SoundbankName>WoodblockHigh-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Woodblock high (hit)</Name>
+<StaffLine>-10</StaffLine>
+<Noteheads>noteheadTriangleUpBlack noteheadTriangleUpBlack noteheadTriangleUpBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>76</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>76</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Bongo High</Name>
+<Type>bongo</Type>
+<SoundbankName>BongoHigh-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Bongo High (hit)</Name>
+<StaffLine>-4</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>60</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>60</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Bongo High (mute)</Name>
+<StaffLine>-5</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>inside</TechniquePlacement>
+<TechniqueSymbol>noteheadParenthesis</TechniqueSymbol>
+<InputMidiNumbers>104</InputMidiNumbers>
+<OutputRSESound>hand.hit.mute</OutputRSESound>
+<OutputMidiNumber>60</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Bongo High (slap)</Name>
+<StaffLine>-6</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>105</InputMidiNumbers>
+<OutputRSESound>hand.hit.slap</OutputRSESound>
+<OutputMidiNumber>60</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Bongo Low</Name>
+<Type>bongo</Type>
+<SoundbankName>BongoLow-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Bongo Low (hit)</Name>
+<StaffLine>-7</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>61</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>61</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Bongo Low (mute)</Name>
+<StaffLine>-8</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>inside</TechniquePlacement>
+<TechniqueSymbol>noteheadParenthesis</TechniqueSymbol>
+<InputMidiNumbers>106</InputMidiNumbers>
+<OutputRSESound>hand.hit.mute</OutputRSESound>
+<OutputMidiNumber>61</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Bongo Low (slap)</Name>
+<StaffLine>-16</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>107</InputMidiNumbers>
+<OutputRSESound>hand.hit.slap</OutputRSESound>
+<OutputMidiNumber>61</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Timbale Low</Name>
+<Type>timbale</Type>
+<SoundbankName>TimbaleLow-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Timbale low (hit)</Name>
+<StaffLine>10</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>66</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>66</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Timbale High</Name>
+<Type>timbale</Type>
+<SoundbankName>TimbaleHigh-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Timbale high (hit)</Name>
+<StaffLine>9</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>65</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>65</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Agogo Low</Name>
+<Type>agogo</Type>
+<SoundbankName>AgogoLow-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Agogo low (hit)</Name>
+<StaffLine>12</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>68</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>68</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Agogo High</Name>
+<Type>agogo</Type>
+<SoundbankName>AgogoHigh-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Agogo high (hit)</Name>
+<StaffLine>11</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>67</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>67</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Conga Low</Name>
+<Type>conga</Type>
+<SoundbankName>CongaLow-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Conga low (hit)</Name>
+<StaffLine>17</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>64</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>64</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Conga low (slap)</Name>
+<StaffLine>16</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>108</InputMidiNumbers>
+<OutputRSESound>hand.hit.slap</OutputRSESound>
+<OutputMidiNumber>64</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Conga low (mute)</Name>
+<StaffLine>15</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>inside</TechniquePlacement>
+<TechniqueSymbol>noteheadParenthesis</TechniqueSymbol>
+<InputMidiNumbers>109</InputMidiNumbers>
+<OutputRSESound>hand.hit.mute</OutputRSESound>
+<OutputMidiNumber>64</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Conga High</Name>
+<Type>conga</Type>
+<SoundbankName>CongaHigh-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Conga high (hit)</Name>
+<StaffLine>14</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>63</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>63</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Conga high (slap)</Name>
+<StaffLine>13</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>110</InputMidiNumbers>
+<OutputRSESound>hand.hit.slap</OutputRSESound>
+<OutputMidiNumber>63</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Conga high (mute)</Name>
+<StaffLine>19</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>inside</TechniquePlacement>
+<TechniqueSymbol>noteheadParenthesis</TechniqueSymbol>
+<InputMidiNumbers>62</InputMidiNumbers>
+<OutputRSESound>hand.hit.mute</OutputRSESound>
+<OutputMidiNumber>62</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Whistle Low</Name>
+<Type>whistle</Type>
+<SoundbankName>WhistleLow-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Whistle low (hit)</Name>
+<StaffLine>-11</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>72</InputMidiNumbers>
+<OutputRSESound>blow.hit.hit</OutputRSESound>
+<OutputMidiNumber>72</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Whistle High</Name>
+<Type>whistle</Type>
+<SoundbankName>WhistleHigh-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Whistle high (hit)</Name>
+<StaffLine>-17</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>71</InputMidiNumbers>
+<OutputRSESound>blow.hit.hit</OutputRSESound>
+<OutputMidiNumber>71</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Guiro</Name>
+<Type>guiro</Type>
+<SoundbankName>Guiro-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Guiro (hit)</Name>
+<StaffLine>38</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>73</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>73</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Guiro (scrap-return)</Name>
+<StaffLine>37</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>74</InputMidiNumbers>
+<OutputRSESound>stick.scrape.return</OutputRSESound>
+<OutputMidiNumber>74</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Surdo</Name>
+<Type>surdo</Type>
+<SoundbankName>Surdo-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Surdo (hit)</Name>
+<StaffLine>36</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>86</InputMidiNumbers>
+<OutputRSESound>brush.hit.hit</OutputRSESound>
+<OutputMidiNumber>86</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Surdo (mute)</Name>
+<StaffLine>35</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>inside</TechniquePlacement>
+<TechniqueSymbol>noteheadParenthesis</TechniqueSymbol>
+<InputMidiNumbers>87</InputMidiNumbers>
+<OutputRSESound>brush.hit.mute</OutputRSESound>
+<OutputMidiNumber>87</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Tambourine</Name>
+<Type>tambourine</Type>
+<SoundbankName>Tambourine-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Tambourine (hit)</Name>
+<StaffLine>3</StaffLine>
+<Noteheads>noteheadTriangleUpBlack noteheadTriangleUpBlack noteheadTriangleUpBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>54</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>54</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Tambourine (return)</Name>
+<StaffLine>2</StaffLine>
+<Noteheads>noteheadTriangleUpBlack noteheadTriangleUpBlack noteheadTriangleUpBlack</Noteheads>
+<TechniquePlacement>above</TechniquePlacement>
+<TechniqueSymbol>stringsUpBow</TechniqueSymbol>
+<InputMidiNumbers>111</InputMidiNumbers>
+<OutputRSESound>hand.hit.return</OutputRSESound>
+<OutputMidiNumber>54</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Tambourine (roll)</Name>
+<StaffLine>1</StaffLine>
+<Noteheads>noteheadTriangleUpBlack noteheadTriangleUpBlack noteheadTriangleUpBlack</Noteheads>
+<TechniquePlacement>above</TechniquePlacement>
+<TechniqueSymbol>stringsDownBow</TechniqueSymbol>
+<InputMidiNumbers>112</InputMidiNumbers>
+<OutputRSESound>hand.hit.roll</OutputRSESound>
+<OutputMidiNumber>54</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Tambourine (hand)</Name>
+<StaffLine>-7</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>113</InputMidiNumbers>
+<OutputRSESound>hand.hit.handhit</OutputRSESound>
+<OutputMidiNumber>54</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Cuica</Name>
+<Type>cuica</Type>
+<SoundbankName>Cuica-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Cuica (open)</Name>
+<StaffLine>30</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>79</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>79</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Cuica (mute)</Name>
+<StaffLine>29</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>78</InputMidiNumbers>
+<OutputRSESound>hand.hit.mute</OutputRSESound>
+<OutputMidiNumber>78</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Vibraslap</Name>
+<Type>vibraslap</Type>
+<SoundbankName>Vibraslap-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Vibraslap (hit)</Name>
+<StaffLine>28</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>58</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>58</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Triangle</Name>
+<Type>triangle</Type>
+<SoundbankName>Triangle-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Triangle (hit)</Name>
+<StaffLine>27</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>81</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>81</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Triangle (mute)</Name>
+<StaffLine>26</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>inside</TechniquePlacement>
+<TechniqueSymbol>noteheadParenthesis</TechniqueSymbol>
+<InputMidiNumbers>80</InputMidiNumbers>
+<OutputRSESound>stick.hit.mute</OutputRSESound>
+<OutputMidiNumber>80</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Grancassa</Name>
+<Type>grancassa</Type>
+<SoundbankName>Grancassa-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Grancassa (hit)</Name>
+<StaffLine>25</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>114</InputMidiNumbers>
+<OutputRSESound>mallet.hit.hit</OutputRSESound>
+<OutputMidiNumber>43</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Piatti</Name>
+<Type>piatti</Type>
+<SoundbankName>Piatti-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Piatti (hit)</Name>
+<StaffLine>18</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>115</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>49</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Piatti (hand)</Name>
+<StaffLine>24</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>116</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>49</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Cabasa</Name>
+<Type>cabasa</Type>
+<SoundbankName>Cabasa-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Cabasa (hit)</Name>
+<StaffLine>23</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>69</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>69</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Cabasa (return)</Name>
+<StaffLine>22</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>stringsUpBow</TechniqueSymbol>
+<InputMidiNumbers>117</InputMidiNumbers>
+<OutputRSESound>hand.hit.return</OutputRSESound>
+<OutputMidiNumber>69</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Castanets</Name>
+<Type>castanets</Type>
+<SoundbankName>Castanets-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Castanets (hit)</Name>
+<StaffLine>21</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>85</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>85</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Claves</Name>
+<Type>claves</Type>
+<SoundbankName>Claves-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Claves (hit)</Name>
+<StaffLine>20</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>75</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>75</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Left Maraca</Name>
+<Type>maraca</Type>
+<SoundbankName>Maracas-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Left Maraca (hit)</Name>
+<StaffLine>-12</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>70</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>70</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Left Maraca (return)</Name>
+<StaffLine>-13</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>stringsUpBow</TechniqueSymbol>
+<InputMidiNumbers>118</InputMidiNumbers>
+<OutputRSESound>hand.hit.return</OutputRSESound>
+<OutputMidiNumber>70</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Right Maraca</Name>
+<Type>maraca</Type>
+<SoundbankName>Maracas-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Right Maraca (hit)</Name>
+<StaffLine>-14</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>119</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>70</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Right Maraca (return)</Name>
+<StaffLine>-15</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>stringsUpBow</TechniqueSymbol>
+<InputMidiNumbers>120</InputMidiNumbers>
+<OutputRSESound>hand.hit.return</OutputRSESound>
+<OutputMidiNumber>70</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Shaker</Name>
+<Type>shaker</Type>
+<SoundbankName>ShakerStudio-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Shaker (hit)</Name>
+<StaffLine>-23</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>82</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>82</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Shaker (return)</Name>
+<StaffLine>-24</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>stringsUpBow</TechniqueSymbol>
+<InputMidiNumbers>122</InputMidiNumbers>
+<OutputRSESound>hand.hit.return</OutputRSESound>
+<OutputMidiNumber>82</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Bell Tree</Name>
+<Type>bellTree</Type>
+<SoundbankName>BellTree-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Bell Tree (hit)</Name>
+<StaffLine>-18</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>84</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>53</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Bell Tree (return)</Name>
+<StaffLine>-19</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>stringsUpBow</TechniqueSymbol>
+<InputMidiNumbers>123</InputMidiNumbers>
+<OutputRSESound>stick.hit.return</OutputRSESound>
+<OutputMidiNumber>53</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Jingle Bell</Name>
+<Type>jingleBell</Type>
+<SoundbankName>JingleBell-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Jingle Bell (hit)</Name>
+<StaffLine>-20</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>83</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>53</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Tinkle Bell</Name>
+<Type>jingleBell</Type>
+<SoundbankName>JingleBell-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Tinkle Bell (hit)</Name>
+<StaffLine>-20</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>83</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>53</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Golpe</Name>
+<Type>unpitched</Type>
+<SoundbankName>Golpe-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Golpe (thumb)</Name>
+<StaffLine>-21</StaffLine>
+<Noteheads>noteheadNull noteheadNull noteheadNull</Noteheads>
+<TechniquePlacement>below</TechniquePlacement>
+<TechniqueSymbol>guitarGolpe</TechniqueSymbol>
+<InputMidiNumbers>124</InputMidiNumbers>
+<OutputRSESound>thumb.hit.body</OutputRSESound>
+<OutputMidiNumber>62</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Golpe (finger)</Name>
+<StaffLine>-22</StaffLine>
+<Noteheads>noteheadNull noteheadNull noteheadNull</Noteheads>
+<TechniquePlacement>above</TechniquePlacement>
+<TechniqueSymbol>guitarGolpe</TechniqueSymbol>
+<InputMidiNumbers>125</InputMidiNumbers>
+<OutputRSESound>finger4.hit.body</OutputRSESound>
+<OutputMidiNumber>62</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Hand Clap</Name>
+<Type>handClap</Type>
+<SoundbankName>GroupHandClap-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Hand Clap (hit)</Name>
+<StaffLine>3</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>39</InputMidiNumbers>
+<OutputRSESound>hand.hit.hit</OutputRSESound>
+<OutputMidiNumber>39</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Electric Snare</Name>
+<Type>snare</Type>
+<SoundbankName>ElectricSnare-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Electric Snare (hit)</Name>
+<StaffLine>3</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>40</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>40</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Sticks</Name>
+<Type>snare</Type>
+<SoundbankName>Stick-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Snare (side stick)</Name>
+<StaffLine>3</StaffLine>
+<Noteheads>noteheadSlashedBlack2 noteheadSlashedBlack2 noteheadSlashedBlack2</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>31</InputMidiNumbers>
+<OutputRSESound>stick.hit.sidestick</OutputRSESound>
+<OutputMidiNumber>40</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Very Low Floor Tom</Name>
+<Type>tom</Type>
+<SoundbankName>LowFloorTom-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Low Floor Tom (hit)</Name>
+<StaffLine>5</StaffLine>
+<Noteheads>noteheadBlack noteheadHalf noteheadWhole</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>41</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>41</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Ride Cymbal 2</Name>
+<Type>ride</Type>
+<SoundbankName>Ride-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Ride (edge)</Name>
+<StaffLine>2</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>above</TechniquePlacement>
+<TechniqueSymbol>pictEdgeOfCymbal</TechniqueSymbol>
+<InputMidiNumbers>59</InputMidiNumbers>
+<OutputRSESound>stick.hit.edge</OutputRSESound>
+<OutputMidiNumber>59</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Ride (middle)</Name>
+<StaffLine>2</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>126</InputMidiNumbers>
+<OutputRSESound>stick.hit.mid</OutputRSESound>
+<OutputMidiNumber>59</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Ride (bell)</Name>
+<StaffLine>2</StaffLine>
+<Noteheads>noteheadDiamondWhite noteheadDiamondWhite noteheadDiamondWhite</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>127</InputMidiNumbers>
+<OutputRSESound>stick.hit.bell</OutputRSESound>
+<OutputMidiNumber>59</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Ride (choke)</Name>
+<StaffLine>2</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol>articStaccatoAbove</TechniqueSymbol>
+<InputMidiNumbers>29</InputMidiNumbers>
+<OutputRSESound>stick.hit.choke</OutputRSESound>
+<OutputMidiNumber>59</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Reverse Cymbal</Name>
+<Type>crash</Type>
+<SoundbankName>Reverse-Cymbal</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Reverse Cymbal (hit)</Name>
+<StaffLine>-3</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>30</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>49</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+<Element>
+<Name>Metronome</Name>
+<Type>snare</Type>
+<SoundbankName>Metronome-Percu</SoundbankName>
+<Articulations>
+<Articulation>
+<Name>Metronome (hit)</Name>
+<StaffLine>3</StaffLine>
+<Noteheads>noteheadXBlack noteheadXBlack noteheadXBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>33</InputMidiNumbers>
+<OutputRSESound>stick.hit.sidestick</OutputRSESound>
+<OutputMidiNumber>37</OutputMidiNumber>
+</Articulation>
+<Articulation>
+<Name>Metronome (bell)</Name>
+<StaffLine>3</StaffLine>
+<Noteheads>noteheadBlack noteheadBlack noteheadBlack</Noteheads>
+<TechniquePlacement>outside</TechniquePlacement>
+<TechniqueSymbol/>
+<InputMidiNumbers>34</InputMidiNumbers>
+<OutputRSESound>stick.hit.hit</OutputRSESound>
+<OutputMidiNumber>38</OutputMidiNumber>
+</Articulation>
+</Articulations>
+</Element>
+</Elements>
+</InstrumentSet>
