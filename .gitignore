@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 *.mp3
 .claude/
+.DS_Store
 
 # Generated GP files (keep blank.gp template)
 *.gp
