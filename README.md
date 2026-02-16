@@ -1,20 +1,17 @@
-# Songsterr Downloader and Youtube Sync for Guitar Pro
-
-Generate Guitar Pro tabs from Songsterr and sync them with real YouTube audio. Produces a `.gp` file with embedded audio and per-measure tempo mapping so your tab plays back perfectly in time with the original recording.
+# guitar-pro-youtube-sync
+Generate Guitar Pro tabs from Songsterr and sync them with YouTube audio. Produces a `.gp` file with embedded audio and per-measure tempo mapping so your tab plays back in time with YouTube.
 
 ![Guitar Pro with synced backing track](screenshot.png)
 
 ## What It Does
 
-Songsterr has crowd-sourced timing data that maps each measure of a song's tab to a specific timestamp in a YouTube video. This tool:
+Songsterr has timing data that maps each measure of a song's tab to a specific timestamp in a YouTube video. This tool:
 
-1. **Generates a Guitar Pro file** from Songsterr's tab data (all tracks, instruments, tunings, drum kits, etc.)
-2. Fetches measure-level timing points from Songsterr's API
-3. Downloads the corresponding YouTube audio via `yt-dlp`
-4. Computes per-measure BPMs from the timing data
-5. Embeds the audio and SyncPoint automations into the Guitar Pro file
+1. Generates a Guitar Pro file from Songsterr's tab data and timing points
+2. Downloads the corresponding YouTube audio via `yt-dlp`
+3. Embeds the audio and SyncPoint automations into the Guitar Pro file
 
-The result is a `.gp` file you can open in Guitar Pro with a fully synced backing track -- every measure lines up with the real recording.
+The result is a `.gp` file you can open in Guitar Pro with a synced backing track.
 
 ## Prerequisites
 
@@ -65,7 +62,7 @@ This generates `Gary Moore - Parisienne Walkways.gp` and outputs a `Gary Moore -
 
 ### Sync with your own GP file
 
-If you already have the Guitar Pro file you'd like to sync instead of generating one. 
+ You can also export the gp file with a plus account on Songsterr which may work better than generating one with this script. If you already have the Guitar Pro file you'd like to sync that instead:
 
 ```bash
 python sync.py --song 23063 --gp-file my-tab.gp
@@ -84,20 +81,18 @@ python sync.py --song 23063 --list-videos
 ```bash
 python sync.py --song 23063 --video-index 2
 ```
+I have only tested this with the default track so unsure how well this works.
 
 ### Generate a GP file only (no sync)
 
-Use `gen-gp.py` directly to generate a Guitar Pro file from Songsterr without syncing:
+If you don't want the audio you can also use use `gen-gp.py` directly to generate a Guitar Pro file from Songsterr without audio syncing:
 
 ```bash
 python gen-gp.py --song 23063
 python gen-gp.py --song 23063 -o output.gp
 ```
 
-This fetches all tracks from Songsterr and produces a `.gp` file compatible with Guitar Pro 7/8, including correct instrument types, tunings, drum kits, track colors, and icons.
-
-<details>
-<summary>Example output</summary>
+### Example output
 
 ```
 [1/5] Fetching song metadata...
@@ -138,13 +133,11 @@ Saved: Gary Moore - Parisienne Walkways_synced.gp
 Done!
 ```
 
-</details>
-
 ## How It Works
 
 ### GP file generation (`gen-gp.py`)
 
-1. Fetches song metadata and all track data from Songsterr's CDN
+1. Fetches song metadata and all track data from Songsterr
 2. Converts Songsterr's JSON format into Guitar Pro's GPIF XML format (notes, beats, bars, rhythms, etc.)
 3. Deduplicates notes and beats for compact file sizes
 4. Handles instrument-specific details: drum kits with neutral clef and MIDI channel 10, string tunings, bends, slides, harmonics, etc.
