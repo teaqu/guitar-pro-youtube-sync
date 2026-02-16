@@ -1,7 +1,7 @@
 # guitar-pro-youtube-sync
 Generate Guitar Pro tabs from Songsterr and sync them with YouTube audio. Produces a `.gp` file with embedded audio and per-measure tempo mapping so your tab plays back in time with YouTube.
 
-![Guitar Pro with synced backing track](screenshot.png)
+![Guitar Pro with synced backing track](assets/screenshot.png)
 
 ## What It Does
 
@@ -159,3 +159,36 @@ Done!
 2. Downloads audio from YouTube using `yt-dlp` and converts to MP3
 3. Computes per-measure BPMs by dividing the measure length (in quarter notes, derived from the time signature) by the duration between consecutive video points
 4. Patches the `.gp` file (a ZIP containing XML) by injecting SyncPoint automations and embedding the MP3 as a backing track asset
+
+## Testing
+
+The project includes test suites for `sync.py` and `gen-gp.py`:
+
+```bash
+# Install test dependencies first
+source .venv/bin/activate
+pip install -r tests/requirements-test.txt
+
+# Run all tests
+pytest
+
+# Run tests excluding slow ones (no audio download)
+pytest -m "not slow"
+
+# Run tests with verbose output
+pytest -v
+
+# Run tests with coverage report
+pytest tests/ --cov=. --cov-report=html --cov-report=term
+
+# Run specific test file
+pytest tests/test_sync.py -v
+pytest tests/test_gen_gp.py -v
+pytest tests/test_integration.py -v
+
+# Run only unit tests (fast, no network required)
+pytest tests/test_sync.py tests/test_gen_gp.py -v
+
+# Run only integration tests (slower, requires network)
+pytest tests/test_integration.py -v -m integration
+```

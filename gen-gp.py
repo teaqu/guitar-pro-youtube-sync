@@ -59,8 +59,8 @@ DRUM_MIDI_TO_ART = {
 }
 
 SONGSTERR_CDN = "https://dqsljvtekg760.cloudfront.net"
-BLANK_GP = Path(__file__).parent / "blank.gp"
-DRUM_KIT_XML = Path(__file__).parent / "drum_kit.xml"
+BLANK_GP = Path(__file__).parent / "assets" / "blank.gp"
+DRUM_KIT_XML = Path(__file__).parent / "assets" / "drum_kit.xml"
 
 
 def escape_xml(text: str) -> str:
