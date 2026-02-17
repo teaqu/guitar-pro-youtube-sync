@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Integration tests for sync.py and gen-gp.py
+Integration tests for sync.py and gen_gp.py
 
 These tests verify the full end-to-end workflow including:
 - Fetching data from Songsterr
@@ -19,19 +19,16 @@ import tempfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 import sys
-import importlib.util
 
-# Import sync.py module
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from sync import (
     fetch_song_meta,
     fetch_video_points,
     sync_gp_file,
 )
 
-# Import gen-gp.py module
-spec = importlib.util.spec_from_file_location("gen_gp", Path(__file__).parent.parent / "gen-gp.py")
-gen_gp = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(gen_gp)
+import gen_gp
 
 
 @pytest.mark.integration

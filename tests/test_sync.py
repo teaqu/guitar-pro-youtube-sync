@@ -253,81 +253,62 @@ class TestVideoEntrySelection:
 class TestCookiesOption:
     """Tests for browser cookies option in download_youtube_audio."""
 
-    @patch('sync.subprocess.run')
-    def test_download_youtube_audio_with_cookies(self, mock_run, tmp_path):
-        """Test that --cookies option is passed to yt-dlp correctly."""
-        # Setup mock
-        mock_run.return_value = MagicMock(returncode=0)
+    @patch('sync.yt_dlp.YoutubeDL')
+    def test_download_youtube_audio_with_cookies(self, mock_ydl_cls, tmp_path):
+        """Test that cookies option is passed to yt-dlp correctly."""
+        # Setup mock: make the download create a fake audio file
+        mock_ydl = MagicMock()
+        mock_ydl_cls.return_value.__enter__ = MagicMock(return_value=mock_ydl)
+        mock_ydl_cls.return_value.__exit__ = MagicMock(return_value=False)
 
-        # Create a fake audio file that would be created by yt-dlp
-        audio_file = tmp_path / ".dl_audio.mp3"
-        audio_file.write_bytes(b"fake audio data")
+        def fake_download(urls):
+            (tmp_path / ".dl_audio.mp3").write_bytes(b"fake audio data")
+        mock_ydl.download.side_effect = fake_download
 
         output_path = tmp_path / "output.mp3"
-        video_id = "test123"
+        download_youtube_audio("test123", output_path, trim_start=0.0, cookies_browser="chrome")
 
-        # Call with cookies
-        download_youtube_audio(video_id, output_path, trim_start=0.0, cookies_browser="chrome")
+        # Verify yt-dlp was initialized with cookies option
+        opts = mock_ydl_cls.call_args[0][0]
+        assert opts["cookiesfrombrowser"] == ("chrome",)
 
-        # Verify subprocess was called
-        assert mock_run.called
-        cmd = mock_run.call_args[0][0]
-
-        # Check that the command includes --cookies-from-browser chrome
-        assert "yt-dlp" in cmd
-        assert "--cookies-from-browser" in cmd
-        assert "chrome" in cmd
-        assert f"https://www.youtube.com/watch?v={video_id}" in cmd
-
-    @patch('sync.subprocess.run')
-    def test_download_youtube_audio_without_cookies(self, mock_run, tmp_path):
+    @patch('sync.yt_dlp.YoutubeDL')
+    def test_download_youtube_audio_without_cookies(self, mock_ydl_cls, tmp_path):
         """Test that yt-dlp works without cookies option."""
-        # Setup mock
-        mock_run.return_value = MagicMock(returncode=0)
+        mock_ydl = MagicMock()
+        mock_ydl_cls.return_value.__enter__ = MagicMock(return_value=mock_ydl)
+        mock_ydl_cls.return_value.__exit__ = MagicMock(return_value=False)
 
-        # Create a fake audio file
-        audio_file = tmp_path / ".dl_audio.mp3"
-        audio_file.write_bytes(b"fake audio data")
+        def fake_download(urls):
+            (tmp_path / ".dl_audio.mp3").write_bytes(b"fake audio data")
+        mock_ydl.download.side_effect = fake_download
 
         output_path = tmp_path / "output.mp3"
-        video_id = "test123"
+        download_youtube_audio("test123", output_path, trim_start=0.0, cookies_browser=None)
 
-        # Call without cookies
-        download_youtube_audio(video_id, output_path, trim_start=0.0, cookies_browser=None)
+        # Verify cookies option is NOT in the yt-dlp options
+        opts = mock_ydl_cls.call_args[0][0]
+        assert "cookiesfrombrowser" not in opts
 
-        # Verify subprocess was called
-        assert mock_run.called
-        cmd = mock_run.call_args[0][0]
-
-        # Check that the command does NOT include cookies option
-        assert "yt-dlp" in cmd
-        assert "--cookies-from-browser" not in cmd
-        assert f"https://www.youtube.com/watch?v={video_id}" in cmd
-
-    @patch('sync.subprocess.run')
-    def test_download_youtube_audio_different_browsers(self, mock_run, tmp_path):
+    @patch('sync.yt_dlp.YoutubeDL')
+    def test_download_youtube_audio_different_browsers(self, mock_ydl_cls, tmp_path):
         """Test that different browser names are passed correctly."""
-        mock_run.return_value = MagicMock(returncode=0)
-
-        video_id = "test123"
         browsers = ["chrome", "firefox", "safari", "edge"]
 
         for browser in browsers:
-            # Use different output path for each browser to avoid early return
+            mock_ydl = MagicMock()
+            mock_ydl_cls.return_value.__enter__ = MagicMock(return_value=mock_ydl)
+            mock_ydl_cls.return_value.__exit__ = MagicMock(return_value=False)
+
             output_path = tmp_path / f"output_{browser}.mp3"
-            audio_file = tmp_path / ".dl_audio.mp3"
-            audio_file.write_bytes(b"fake audio data")
 
-            download_youtube_audio(video_id, output_path, trim_start=0.0, cookies_browser=browser)
-            cmd = mock_run.call_args[0][0]
-            assert "--cookies-from-browser" in cmd
-            assert browser in cmd
+            def fake_download(urls, _b=browser):
+                (tmp_path / ".dl_audio.mp3").write_bytes(b"fake audio data")
+            mock_ydl.download.side_effect = fake_download
 
-            # Clean up for next iteration
-            if audio_file.exists():
-                audio_file.unlink()
-            if output_path.exists():
-                output_path.unlink()
+            download_youtube_audio("test123", output_path, trim_start=0.0, cookies_browser=browser)
+            opts = mock_ydl_cls.call_args[0][0]
+            assert opts["cookiesfrombrowser"] == (browser,)
 
 
 if __name__ == "__main__":

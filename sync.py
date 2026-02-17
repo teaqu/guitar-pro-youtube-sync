@@ -23,6 +23,10 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import requests
+import yt_dlp
+
+import gen_gp
+from utils import get_ffmpeg_dir
 
 
 def fetch_video_points(song_id: int, revision_id: int) -> list[dict]:
@@ -89,6 +93,16 @@ def select_video_entry(entries: list[dict], video_index: int | None = None) -> d
     return entry
 
 
+def _ffmpeg_bin() -> str:
+    """Return path to ffmpeg binary, preferring bundled version."""
+    ffmpeg_dir = get_ffmpeg_dir()
+    if ffmpeg_dir:
+        import platform
+        name = "ffmpeg.exe" if platform.system() == "Windows" else "ffmpeg"
+        return str(Path(ffmpeg_dir) / name)
+    return "ffmpeg"
+
+
 def download_youtube_audio(video_id: str, output_path: Path, trim_start: float = 0.0, cookies_browser: str | None = None) -> Path:
     """Download YouTube video and extract MP3 audio.
 
@@ -102,35 +116,38 @@ def download_youtube_audio(video_id: str, output_path: Path, trim_start: float =
         return output_path
 
     url = f"https://www.youtube.com/watch?v={video_id}"
-    print(f"Downloading YouTube audio: {url}")
+    print(f"  Downloading YouTube audio: {url}")
 
-    # Download to a temp name first, then rename
-    temp_template = str(output_path.parent / f".dl_audio.%(ext)s")
-    cmd = [
-        "yt-dlp",
-        "-x",
-        "--audio-format", "mp3",
-        "--audio-quality", "0",
-        "-o", temp_template,
-    ]
+    # Use yt-dlp Python API instead of subprocess
+    temp_template = str(output_path.parent / ".dl_audio.%(ext)s")
+    ffmpeg_dir = get_ffmpeg_dir()
+
+    ydl_opts: dict = {
+        "format": "bestaudio/best",
+        "outtmpl": temp_template,
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "0",
+        }],
+        "quiet": True,
+        "no_warnings": True,
+    }
+
+    if ffmpeg_dir:
+        ydl_opts["ffmpeg_location"] = ffmpeg_dir
+
     if cookies_browser:
-        cmd.extend(["--cookies-from-browser", cookies_browser])
-    cmd.append(url)
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-    if result.returncode != 0:
-        print(f"  yt-dlp stderr: {result.stderr}")
-        raise RuntimeError(f"yt-dlp failed with exit code {result.returncode}")
+        ydl_opts["cookiesfrombrowser"] = (cookies_browser,)
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
 
     # Find the downloaded file and rename to desired output
     for f in output_path.parent.glob(".dl_audio.*"):
         if f.suffix == ".part":
             continue
-        if f.suffix != ".mp3":
-            subprocess.run(["ffmpeg", "-i", str(f), "-b:a", "320k", str(output_path)],
-                           capture_output=True, timeout=120)
-            f.unlink()
-        else:
-            f.rename(output_path)
+        f.replace(output_path)
         break
 
     # Trim audio to start at measure 1 (skip video intro)
@@ -138,12 +155,12 @@ def download_youtube_audio(video_id: str, output_path: Path, trim_start: float =
         trimmed = output_path.parent / ".tmp_trimmed.mp3"
         print(f"  Trimming audio: skipping first {trim_start:.2f}s of video intro")
         trim_result = subprocess.run(
-            ["ffmpeg", "-y", "-ss", str(trim_start), "-i", str(output_path),
+            [_ffmpeg_bin(), "-y", "-ss", str(trim_start), "-i", str(output_path),
              "-c", "copy", str(trimmed)],
             capture_output=True, timeout=120,
         )
         if trim_result.returncode == 0 and trimmed.exists():
-            trimmed.rename(output_path)
+            trimmed.replace(output_path)
         elif trimmed.exists():
             trimmed.unlink()
 
@@ -525,15 +542,11 @@ Examples:
     else:
         # Auto-generate GP file from Songsterr data
         print("\n  Generating GP file from Songsterr...")
-        import importlib.util
-        _spec = importlib.util.spec_from_file_location("gen_gp", Path(__file__).parent / "gen-gp.py")
-        _mod = importlib.util.module_from_spec(_spec)
-        _spec.loader.exec_module(_mod)
-        gp_meta, tracks = _mod.fetch_all_tracks(song_id)
+        gp_meta, tracks = gen_gp.fetch_all_tracks(song_id)
         safe = "".join(c if c.isalnum() or c in " -_" else "" for c in
                        f"{meta['artist']} - {meta['title']}").strip()
         gp_file = Path(f"{safe or 'output'}.gp").resolve()
-        _mod.generate_gp(tracks, gp_file, gp_meta)
+        gen_gp.generate_gp(tracks, gp_file, gp_meta)
 
     # Output goes next to the original GP file
     gp_dir = gp_file.parent
