@@ -1,0 +1,118 @@
+name: Build Executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests yt-dlp -r tests/requirements-test.txt
+
+      - name: Run tests
+        run: pytest -m "not integration and not slow" -v
+
+  build:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: guitar-pro-sync-linux-x86_64
+            ffmpeg_ext: ""
+            sep: ":"
+          - os: macos-13
+            artifact_name: guitar-pro-sync-macos-x86_64
+            ffmpeg_ext: ""
+            sep: ":"
+          - os: macos-latest
+            artifact_name: guitar-pro-sync-macos-arm64
+            ffmpeg_ext: ""
+            sep: ":"
+          - os: windows-latest
+            artifact_name: guitar-pro-sync-windows-x86_64
+            ffmpeg_ext: ".exe"
+            sep: ";"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install pyinstaller requests yt-dlp
+
+      - name: Set up FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+          linking-type: static
+          github-token: ${{ github.token }}
+
+      - name: Copy FFmpeg binaries (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p ffmpeg_bin
+          cp "$(which ffmpeg)" ffmpeg_bin/
+          cp "$(which ffprobe)" ffmpeg_bin/
+
+      - name: Copy FFmpeg binaries (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p ffmpeg_bin
+          cp "$(which ffmpeg.exe)" ffmpeg_bin/
+          cp "$(which ffprobe.exe)" ffmpeg_bin/
+
+      - name: Build with PyInstaller
+        shell: bash
+        run: |
+          pyinstaller \
+            --onefile \
+            --name "${{ matrix.artifact_name }}" \
+            --add-data "assets${{ matrix.sep }}assets" \
+            --add-binary "ffmpeg_bin/ffmpeg${{ matrix.ffmpeg_ext }}${{ matrix.sep }}ffmpeg_bin" \
+            --add-binary "ffmpeg_bin/ffprobe${{ matrix.ffmpeg_ext }}${{ matrix.sep }}ffmpeg_bin" \
+            main.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.artifact_name }}*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
