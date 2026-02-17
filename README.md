@@ -3,6 +3,25 @@ Generate Guitar Pro tabs from Songsterr and sync them with YouTube audio. Produc
 
 ![Guitar Pro with synced backing track](assets/screenshot.png)
 
+## Download
+
+Pre-built executables are available for all platforms -- no Python or dependencies needed:
+
+**[Download the latest release](https://github.com/teaqu/guitar-pro-youtube-sync/releases/latest)**
+
+| Platform | File |
+|----------|------|
+| Windows | `guitar-pro-sync-windows-x86_64.exe` |
+| macOS (Apple Silicon) | `guitar-pro-sync-macos-arm64` |
+| macOS (Intel) | `guitar-pro-sync-macos-x86_64` |
+| Linux | `guitar-pro-sync-linux-x86_64` |
+
+Just download, run, and follow the prompts. Everything (Python, yt-dlp, ffmpeg) is bundled inside the executable.
+
+> **macOS:** You may see "Apple could not verify this app." Right-click the file, select **Open**, then click **Open** again to bypass Gatekeeper.
+>
+> **Windows:** Windows Defender or SmartScreen may flag the download. This is a common false positive with PyInstaller-built executables. Click **More info** → **Run anyway**.
+
 ## What It Does
 
 Songsterr has timing data that maps each measure of a song's tab to a specific timestamp in a YouTube video. This tool:
@@ -13,35 +32,35 @@ Songsterr has timing data that maps each measure of a song's tab to a specific t
 
 The result is a `.gp` file you can open in Guitar Pro with a synced backing track.
 
-## Prerequisites
+## Development Setup
+
+If you want to run from source instead of the pre-built executable:
+
+### Prerequisites
 
 - **Python 3.10+**
-- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** -- for downloading YouTube audio
-- **[ffmpeg](https://ffmpeg.org/)** -- for audio conversion (used by yt-dlp)
+- **[ffmpeg](https://ffmpeg.org/)** -- for audio conversion
 
-## Installation
+### Installation
 
 ```bash
 git clone https://github.com/teaqu/guitar-pro-youtube-sync.git
 cd guitar-pro-youtube-sync
 python -m venv .venv
 source .venv/bin/activate
-pip install requests
+pip install -r requirements.txt
 ```
 
-Make sure `yt-dlp` and `ffmpeg` are installed and available on your PATH:
+Make sure `ffmpeg` is installed and available on your PATH:
 
 ```bash
 # macOS
-brew install yt-dlp ffmpeg
+brew install ffmpeg
 
 # Linux
-pip install yt-dlp
 sudo apt install ffmpeg
 
-# Windows
-pip install yt-dlp
-# Download ffmpeg from https://ffmpeg.org/download.html
+# Windows - download from https://ffmpeg.org/download.html
 ```
 
 ## Usage
@@ -95,11 +114,11 @@ Supported browsers: `chrome`, `firefox`, `safari`, `edge`, `brave`, `opera`, `vi
 
 ### Generate a GP file only (no sync)
 
-If you don't want the audio you can also use use `gen-gp.py` directly to generate a Guitar Pro file from Songsterr without audio syncing:
+If you don't want the audio you can also use use `gen_gp.py` directly to generate a Guitar Pro file from Songsterr without audio syncing:
 
 ```bash
-python gen-gp.py --song 23063
-python gen-gp.py --song 23063 -o output.gp
+python gen_gp.py --song 23063
+python gen_gp.py --song 23063 -o output.gp
 ```
 
 ### Example output
@@ -145,7 +164,7 @@ Done!
 
 ## How It Works
 
-### GP file generation (`gen-gp.py`)
+### GP file generation (`gen_gp.py`)
 
 1. Fetches song metadata and all track data from Songsterr
 2. Converts Songsterr's JSON format into Guitar Pro's GPIF XML format (notes, beats, bars, rhythms, etc.)
@@ -162,7 +181,7 @@ Done!
 
 ## Testing
 
-The project includes test suites for `sync.py` and `gen-gp.py`:
+The project includes test suites for `sync.py` and `gen_gp.py`:
 
 ```bash
 # Install test dependencies first

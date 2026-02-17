@@ -7,4 +7,9 @@ __pycache__/
 
 # Generated GP files (keep blank.gp template)
 *.gp
-!blank.gp
+!assets/blank.gp
+
+# PyInstaller
+build/
+dist/
+*.spec

@@ -1,25 +1,15 @@
 #!/usr/bin/env python3
-"""Tests for gen-gp.py"""
+"""Tests for gen_gp.py"""
 
 import pytest
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import gen-gp module
+# Add parent directory to path to import modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Import gen-gp.py as a module
-import importlib.util
-spec = importlib.util.spec_from_file_location("gen_gp", Path(__file__).parent.parent / "gen-gp.py")
-gen_gp = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(gen_gp)
-
-# Import functions from gen-gp.py
-escape_xml = gen_gp.escape_xml
-midi_to_pitch_xml = gen_gp.midi_to_pitch_xml
-get_instrument_type = gen_gp.get_instrument_type
-parse_song_id = gen_gp.parse_song_id
-GPIFBuilder = gen_gp.GPIFBuilder
+import gen_gp
+from gen_gp import escape_xml, midi_to_pitch_xml, get_instrument_type, parse_song_id, GPIFBuilder
 
 
 class TestXMLEscaping:

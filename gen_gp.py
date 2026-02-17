@@ -6,9 +6,9 @@ Uses blank.gp as a template (for binary files, stylesheets, etc.)
 and generates a new score.gpif with the tab data.
 
 Usage:
-    python gen-gp.py --song 61178 [-o output.gp]
-    python gen-gp.py --song https://www.songsterr.com/a/wsa/ozzy-osbourne-crazy-train-tab-s61178
-    python gen-gp.py input.json [-o output.gp]
+    python gen_gp.py --song 61178 [-o output.gp]
+    python gen_gp.py --song https://www.songsterr.com/a/wsa/ozzy-osbourne-crazy-train-tab-s61178
+    python gen_gp.py input.json [-o output.gp]
 """
 
 import argparse
@@ -19,6 +19,8 @@ import zipfile
 from pathlib import Path
 
 import requests
+
+from utils import resource_path
 
 DURATION_MAP = {
     1: "Whole", 2: "Half", 4: "Quarter", 8: "Eighth",
@@ -59,8 +61,8 @@ DRUM_MIDI_TO_ART = {
 }
 
 SONGSTERR_CDN = "https://dqsljvtekg760.cloudfront.net"
-BLANK_GP = Path(__file__).parent / "assets" / "blank.gp"
-DRUM_KIT_XML = Path(__file__).parent / "assets" / "drum_kit.xml"
+BLANK_GP = resource_path("assets/blank.gp")
+DRUM_KIT_XML = resource_path("assets/drum_kit.xml")
 
 
 def escape_xml(text: str) -> str:
@@ -900,10 +902,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python gen-gp.py --song 61178
-  python gen-gp.py --song https://www.songsterr.com/a/wsa/ozzy-osbourne-crazy-train-tab-s61178
-  python gen-gp.py --song 61178 -o crazy_train.gp
-  python gen-gp.py input.json -o output.gp
+  python gen_gp.py --song 61178
+  python gen_gp.py --song https://www.songsterr.com/a/wsa/ozzy-osbourne-crazy-train-tab-s61178
+  python gen_gp.py --song 61178 -o crazy_train.gp
+  python gen_gp.py input.json -o output.gp
         """,
     )
     parser.add_argument("input", nargs="?", help="JSON file path or '-' for stdin (single track mode)")
