@@ -35,8 +35,8 @@ jobs:
             artifact_name: guitar-pro-sync-linux-x86_64
             ffmpeg_ext: ""
             sep: ":"
-          - os: macos-13
-            artifact_name: guitar-pro-sync-macos-x86_64
+          - os: macos-latest
+            artifact_name: guitar-pro-sync-macos-arm64
             ffmpeg_ext: ""
             sep: ":"
           - os: windows-latest
@@ -57,11 +57,16 @@ jobs:
       - name: Install Python dependencies
         run: pip install pyinstaller requests yt-dlp
 
-      - name: Set up FFmpeg
+      - name: Set up FFmpeg (Linux/Windows)
+        if: runner.os != 'macOS'
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
           ffmpeg-version: release
           github-token: ${{ github.token }}
+
+      - name: Set up FFmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
 
       - name: Copy FFmpeg binaries (Unix)
         if: runner.os != 'Windows'
