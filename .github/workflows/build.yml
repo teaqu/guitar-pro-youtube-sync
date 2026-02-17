@@ -39,10 +39,6 @@ jobs:
             artifact_name: guitar-pro-sync-macos-x86_64
             ffmpeg_ext: ""
             sep: ":"
-          - os: macos-latest
-            artifact_name: guitar-pro-sync-macos-arm64
-            ffmpeg_ext: ""
-            sep: ":"
           - os: windows-latest
             artifact_name: guitar-pro-sync-windows-x86_64
             ffmpeg_ext: ".exe"
@@ -65,7 +61,6 @@ jobs:
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
           ffmpeg-version: release
-          linking-type: static
           github-token: ${{ github.token }}
 
       - name: Copy FFmpeg binaries (Unix)

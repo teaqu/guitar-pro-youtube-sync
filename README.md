@@ -5,15 +5,14 @@ Generate Guitar Pro tabs from Songsterr and sync them with YouTube audio. Produc
 
 ## Download
 
-Pre-built executables are available for all platforms -- no Python or dependencies needed:
+Pre-built executables are available:
 
 **[Download the latest release](https://github.com/teaqu/guitar-pro-youtube-sync/releases/latest)**
 
 | Platform | File |
 |----------|------|
 | Windows | `guitar-pro-sync-windows-x86_64.exe` |
-| macOS (Apple Silicon) | `guitar-pro-sync-macos-arm64` |
-| macOS (Intel) | `guitar-pro-sync-macos-x86_64` |
+| macOS | `guitar-pro-sync-macos-x86_64` |
 | Linux | `guitar-pro-sync-linux-x86_64` |
 
 Just download, run, and follow the prompts. Everything (Python, yt-dlp, ffmpeg) is bundled inside the executable.
