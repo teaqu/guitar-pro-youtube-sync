@@ -866,7 +866,7 @@ def generate_gp(tracks: list[dict], output_path: Path, meta: dict | None = None,
                 dst.writestr(item, gpif.encode("utf-8"))
             else:
                 dst.writestr(item, src.read(item.filename))
-    tmp_path.rename(output_path)
+    tmp_path.replace(output_path)
 
     # Print summary
     num_measures = len(tracks[0].get("measures", []))

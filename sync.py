@@ -147,7 +147,7 @@ def download_youtube_audio(video_id: str, output_path: Path, trim_start: float =
     for f in output_path.parent.glob(".dl_audio.*"):
         if f.suffix == ".part":
             continue
-        f.rename(output_path)
+        f.replace(output_path)
         break
 
     # Trim audio to start at measure 1 (skip video intro)
@@ -160,7 +160,7 @@ def download_youtube_audio(video_id: str, output_path: Path, trim_start: float =
             capture_output=True, timeout=120,
         )
         if trim_result.returncode == 0 and trimmed.exists():
-            trimmed.rename(output_path)
+            trimmed.replace(output_path)
         elif trimmed.exists():
             trimmed.unlink()
 
