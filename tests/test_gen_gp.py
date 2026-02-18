@@ -77,51 +77,67 @@ class TestInstrumentType:
         assert result["set_type"] == "drumKit"
         assert "Drums" in result["sound_path"]
         assert result["icon"] == 18
+        assert result["soundbank_patch"] is None  # drums handled separately
 
     def test_get_instrument_type_bass(self):
         result = get_instrument_type("Electric Bass (pick)", 34)
         assert result["set_type"] == "electricBass"
         assert "Bass" in result["sound_path"]
         assert result["icon"] == 5
+        assert result["soundbank_patch"] == "Pre-Bass"
+        assert any("EqBEq" in fx_id for fx_id, _ in result["effect_chain"])
 
     def test_get_instrument_type_distortion_guitar(self):
         result = get_instrument_type("Distortion Guitar", 30)
         assert result["set_type"] == "electricGuitar"
         assert "Distortion" in result["sound_path"]
         assert result["icon"] == 4
+        assert result["soundbank_patch"] == "Classic-Guitar"
+        assert any("OverdriveScreamer" in fx_id for fx_id, _ in result["effect_chain"])
+        assert any("BritishStack" in fx_id for fx_id, _ in result["effect_chain"])
 
     def test_get_instrument_type_clean_guitar(self):
         result = get_instrument_type("Electric Guitar (clean)", 27)
         assert result["set_type"] == "electricGuitar"
-        assert "12 Strings Electric Guitar" in result["sound_path"]
+        assert "Clean Guitar" in result["sound_path"]
         assert result["icon"] == 3
+        assert result["soundbank_patch"] == "Strat-Guitar"
+        assert any("ComboTop30" in fx_id for fx_id, _ in result["effect_chain"])
 
     def test_get_instrument_type_acoustic_guitar(self):
         result = get_instrument_type("Acoustic Guitar (steel)", 25)
         assert result["set_type"] == "steelGuitar"
         assert "Acoustic" in result["sound_path"]
         assert result["icon"] == 3
+        assert result["soundbank_patch"] == "SteelString-Guitar"
 
     def test_get_instrument_type_piano(self):
         result = get_instrument_type("Grand Piano", 0)
         assert result["set_type"] == "piano"
         assert "Piano" in result["sound_path"]
         assert result["icon"] == 10
+        assert result["soundbank_patch"] is None
+        assert len(result["effect_chain"]) > 0  # still gets orchestral chain
 
     def test_get_instrument_type_violin(self):
         result = get_instrument_type("Violin", 40)
         assert result["set_type"] == "violin"
         assert result["icon"] == 14
+        assert result["soundbank_patch"] == "Violin-Solo"
+        assert any("Reverb" in fx_id for fx_id, _ in result["effect_chain"])
 
     def test_get_instrument_type_trumpet(self):
         result = get_instrument_type("Trumpet", 56)
         assert result["set_type"] == "trumpet"
         assert result["icon"] == 14
+        assert result["soundbank_patch"] is None  # no specific patch for brass
+        assert len(result["effect_chain"]) > 0
 
     def test_get_instrument_type_saxophone(self):
         result = get_instrument_type("Saxophone", 66)
         assert result["set_type"] == "saxophone"
         assert result["icon"] == 14
+        assert result["soundbank_patch"] == "Sax-Solo"
 
     def test_get_instrument_type_tenor_sax(self):
         """Songsterr uses 'Tenor Sax' which should match saxophone."""
@@ -129,6 +145,7 @@ class TestInstrumentType:
         assert result["set_type"] == "saxophone"
         assert "Winds" in result["sound_path"]
         assert result["icon"] == 14
+        assert result["soundbank_patch"] == "Sax-Solo"
 
     def test_get_instrument_type_lead_voice(self):
         """Songsterr 'Lead 6 (voice)' should map to leadSynthesizer."""
@@ -136,6 +153,7 @@ class TestInstrumentType:
         assert result["set_type"] == "leadSynthesizer"
         assert "Synth" in result["sound_path"]
         assert result["icon"] == 12
+        assert result["soundbank_patch"] is None
 
     def test_get_instrument_type_electric_piano(self):
         """'Electric Piano 1' should map to electricPiano, not generic piano."""
@@ -143,6 +161,7 @@ class TestInstrumentType:
         assert result["set_type"] == "electricPiano"
         assert "Electric Piano" in result["sound_path"]
         assert result["icon"] == 10
+        assert result["soundbank_patch"] is None
 
     def test_get_instrument_type_overdriven_guitar(self):
         """'Overdriven Guitar' should map to Overdrive Guitar path."""
@@ -150,11 +169,19 @@ class TestInstrumentType:
         assert result["set_type"] == "electricGuitar"
         assert "Overdrive" in result["sound_path"]
         assert result["icon"] == 4
+        assert result["soundbank_patch"] == "Strat-Guitar"
+        assert any("BritishVintage" in fx_id for fx_id, _ in result["effect_chain"])
+
+    def test_get_instrument_type_cello(self):
+        result = get_instrument_type("Cello", 42)
+        assert result["set_type"] == "cello"
+        assert result["soundbank_patch"] == "Cello-Solo"
 
     def test_get_instrument_type_default(self):
         # Unknown instrument should default to electric guitar
         result = get_instrument_type("Unknown Instrument")
         assert result["set_type"] == "electricGuitar"
+        assert result["soundbank_patch"] == "Strat-Guitar"
 
     def test_get_instrument_type_case_insensitive(self):
         # Should work with different cases
@@ -496,6 +523,168 @@ class TestDrumTrackFeatures:
 
         assert "<Role>Factory</Role>" in gpif_xml
         assert "<SoundbankPatch>Drumkit-Master</SoundbankPatch>" in gpif_xml
+        assert "<Tones>1 1</Tones>" in gpif_xml
+        assert '<Effect id="M06_DynamicAnalogDynamic">' in gpif_xml
+        assert '<Effect id="M08_GraphicEQ10Band">' in gpif_xml
+        assert '<Effect id="M05_StudioReverbPlatePercussive">' in gpif_xml
+
+    def test_non_drum_rse_sound(self):
+        """Non-drum tracks should include RSE SoundbankPatch, Pickups and EffectChain."""
+        tracks = [{
+            "name": "Guitar",
+            "instrument": "Distortion Guitar",
+            "instrumentId": 30,
+            "strings": 6,
+            "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": [
+                {
+                    "voices": [{"beats": [{"type": 4, "notes": [{"fret": 0, "string": 0}]}]}]
+                }
+            ]
+        }]
+
+        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert "<SoundbankPatch>Classic-Guitar</SoundbankPatch>" in gpif_xml
+        assert "<Tones>1 1</Tones>" in gpif_xml
+        assert '<Effect id="E03_OverdriveScreamer">' in gpif_xml
+        assert '<Effect id="A06_StackBritishStack">' in gpif_xml
+        assert '<Effect id="E30_EqGEq">' in gpif_xml
+        assert "<Role>User</Role>" in gpif_xml
+
+    def test_multi_sound_track(self):
+        """Tracks with multiple sounds should have multiple Sound entries and Sound automations."""
+        tracks = [{
+            "name": "Bass",
+            "instrument": "Electric Bass (pick)",
+            "instrumentId": 34,
+            "strings": 4,
+            "tuning": [43, 38, 33, 28],
+            "sounds": [
+                {"instrumentId": 34, "label": "Electric Bass (pick)"},
+                {"instrumentId": 29, "label": "Overdriven Guitar"},
+            ],
+            "trackAutomations": {
+                "trackSoundAutomations": [
+                    {"soundId": 1, "measure": 20, "position": 0},
+                    {"soundId": 0, "measure": 36, "position": 0},
+                ]
+            },
+            "measures": [
+                {
+                    "voices": [{"beats": [{"type": 4, "notes": [{"fret": 0, "string": 0}]}]}]
+                }
+            ]
+        }]
+
+        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        # Should have both sounds
+        assert "<SoundbankPatch>Pre-Bass</SoundbankPatch>" in gpif_xml
+        assert "<SoundbankPatch>Strat-Guitar</SoundbankPatch>" in gpif_xml
+        # Should have sound automations
+        assert "<Bar>20</Bar>" in gpif_xml
+        assert "<Bar>36</Bar>" in gpif_xml
+        assert "Overdriven Guitar;User" in gpif_xml
+        assert "Electric Bass (pick);User" in gpif_xml
+
+    def test_non_drum_sound_automation(self):
+        """Single-sound non-drum tracks should still get a default Sound automation."""
+        tracks = [{
+            "name": "Guitar",
+            "instrument": "Distortion Guitar",
+            "instrumentId": 30,
+            "strings": 6,
+            "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": [
+                {
+                    "voices": [{"beats": [{"type": 4, "notes": [{"fret": 0, "string": 0}]}]}]
+                }
+            ]
+        }]
+
+        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert "Distortion Guitar;User</Value>" in gpif_xml
+        assert "<Type>Sound</Type>" in gpif_xml
+
+    def test_no_soundbank_patch_instrument(self):
+        """Instruments without a soundbank_patch should produce self-closing SoundbankPatch."""
+        tracks = [{
+            "name": "Synth",
+            "instrument": "Lead 6 (voice)",
+            "instrumentId": 85,
+            "strings": 6,
+            "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": [
+                {
+                    "voices": [{"beats": [{"type": 4, "notes": [{"fret": 0, "string": 0}]}]}]
+                }
+            ]
+        }]
+
+        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert "<SoundbankPatch/>" in gpif_xml
+        assert "<Tones>1 1</Tones>" in gpif_xml
+        assert "<EffectChain>" in gpif_xml
+
+    def test_sound_automation_fractional_position(self):
+        """Sound automations with non-zero position should convert ticks to fraction (pos/960)."""
+        tracks = [{
+            "name": "Guitar",
+            "instrument": "Distortion Guitar",
+            "instrumentId": 30,
+            "strings": 6,
+            "tuning": [64, 59, 55, 50, 45, 40],
+            "sounds": [
+                {"instrumentId": 30, "label": "Distortion Guitar"},
+                {"instrumentId": 27, "label": "Electric Guitar (clean)"},
+            ],
+            "trackAutomations": {
+                "trackSoundAutomations": [
+                    {"soundId": 1, "measure": 0, "position": 0},
+                    {"soundId": 0, "measure": 10, "position": 480},
+                ]
+            },
+            "measures": [
+                {
+                    "voices": [{"beats": [{"type": 4, "notes": [{"fret": 0, "string": 0}]}]}]
+                }
+            ]
+        }]
+
+        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert "<Position>0.5</Position>" in gpif_xml
+        assert "<Bar>10</Bar>" in gpif_xml
+
+    def test_bass_rse_sound(self):
+        """Bass tracks should get Pre-Bass patch and bass-specific EQ."""
+        tracks = [{
+            "name": "Bass",
+            "instrument": "Electric Bass (pick)",
+            "instrumentId": 34,
+            "strings": 4,
+            "tuning": [43, 38, 33, 28],
+            "measures": [
+                {
+                    "voices": [{"beats": [{"type": 4, "notes": [{"fret": 0, "string": 0}]}]}]
+                }
+            ]
+        }]
+
+        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert "<SoundbankPatch>Pre-Bass</SoundbankPatch>" in gpif_xml
+        assert '<Effect id="A10_StackClassic">' in gpif_xml
+        assert '<Effect id="E31_EqBEq">' in gpif_xml
 
     def test_non_drum_no_notation_patch(self):
         """Non-drum tracks should not include NotationPatch."""

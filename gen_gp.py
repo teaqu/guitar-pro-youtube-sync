@@ -240,8 +240,33 @@ def _icon_from_midi_program(instrument_id: int) -> int:
     return 4  # Default: electric guitar icon
 
 
+    # RSE effect chain presets (effect_id, parameters)
+_FX_OVERDRIVE_SCREAMER = ("E03_OverdriveScreamer", "0.85 0 0.67")
+_FX_STACK_BRITISH = ("A06_StackBritishStack", "1 0.91 0.67 0.32 0.69 0.51 0.95 0")
+_FX_STACK_BRITISH_VINTAGE = ("A05_StackBritishVintage", "0.85 0.67 0.36 0.66 0.52")
+_FX_STACK_CLASSIC = ("A10_StackClassic", "0.45 0 0 0.63 0.37 0.39 0.39 0.71")
+_FX_COMBO_TOP30 = ("A01_ComboTop30", "0.61 0.59 0.38 0.511667 0.21 0.29 0 0")
+_FX_EQ_GUITAR = ("E30_EqGEq", "0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949")
+_FX_EQ_BASS = ("E31_EqBEq", "0.657143 0.6 0.6 0.685714 0.342857 0.628571 0.714286 0.5")
+_FX_EQ_10BAND = ("M08_GraphicEQ10Band", "0 0 0.5 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949")
+_FX_REVERB_ROOM = ("M04_StudioReverbRoomAmbience", "1 0.30476 0.4 0.5 0.2")
+
+# Grouped effect chains per instrument category
+_CHAIN_DISTORTION = [_FX_OVERDRIVE_SCREAMER, _FX_STACK_BRITISH, _FX_EQ_GUITAR]
+_CHAIN_OVERDRIVE = [_FX_OVERDRIVE_SCREAMER, _FX_STACK_BRITISH_VINTAGE, _FX_EQ_GUITAR]
+_CHAIN_CLEAN_GUITAR = [_FX_COMBO_TOP30, _FX_EQ_GUITAR]
+_CHAIN_BASS = [_FX_STACK_CLASSIC, _FX_EQ_BASS]
+_CHAIN_ORCHESTRAL = [_FX_EQ_10BAND, _FX_REVERB_ROOM]
+
+# SoundbankPatch names for solo orchestral instruments
+_ORCHESTRAL_PATCHES: dict[str, str] = {
+    "violin": "Violin-Solo", "viola": "Viola-Solo", "cello": "Cello-Solo",
+    "contrabass": "Contrabass-Solo", "sax": "Sax-Solo",
+}
+
+
 def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
-    """Map Songsterr instrument name to GP InstrumentSet type, Sound path, icon, and color."""
+    """Map Songsterr instrument name to GP InstrumentSet type, Sound path, icon, color, and RSE config."""
     name_lower = instrument_name.lower()
 
     # Colors: green=winds, red=guitar, yellow=bass, blue=drums, purple=keys
@@ -253,55 +278,68 @@ def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
 
     icon = _icon_from_midi_program(instrument_id)
 
-    # Drums
+    # Drums (RSE handled separately in _build_track_xml)
     if "drum" in name_lower or "percussion" in name_lower:
         return {"set_type": "drumKit", "sound_path": "Drums/Drums/Drumkit",
-                "icon": 18, "color": BLUE}
+                "icon": 18, "color": BLUE,
+                "soundbank_patch": None, "effect_chain": []}
     # Bass
     if "bass" in name_lower:
         return {"set_type": "electricBass", "sound_path": "Stringed/Basses/Clean Bass",
-                "icon": icon, "color": YELLOW}
+                "icon": icon, "color": YELLOW,
+                "soundbank_patch": "Pre-Bass", "effect_chain": _CHAIN_BASS}
     # Synthesizer / voice leads
     if "synth" in name_lower or "voice" in name_lower:
         return {"set_type": "leadSynthesizer", "sound_path": "Orchestra/Synth/Lead",
-                "icon": icon, "color": PURPLE}
+                "icon": icon, "color": PURPLE,
+                "soundbank_patch": None, "effect_chain": _CHAIN_ORCHESTRAL}
     # Guitar variants
     if "distortion" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Distortion Guitar",
-                "icon": icon, "color": RED}
+                "icon": icon, "color": RED,
+                "soundbank_patch": "Classic-Guitar", "effect_chain": _CHAIN_DISTORTION}
     if "overdrive" in name_lower or "overdriven" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Overdrive Guitar",
-                "icon": icon, "color": RED}
+                "icon": icon, "color": RED,
+                "soundbank_patch": "Strat-Guitar", "effect_chain": _CHAIN_OVERDRIVE}
     if "clean" in name_lower and "guitar" in name_lower:
-        return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/12 Strings Electric Guitar",
-                "icon": icon, "color": RED}
+        return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Clean Guitar",
+                "icon": icon, "color": RED,
+                "soundbank_patch": "Strat-Guitar", "effect_chain": _CHAIN_CLEAN_GUITAR}
     if "acoustic" in name_lower and "guitar" in name_lower:
         return {"set_type": "steelGuitar", "sound_path": "Stringed/Acoustic Guitars/Steel Guitar",
-                "icon": icon, "color": RED}
+                "icon": icon, "color": RED,
+                "soundbank_patch": "SteelString-Guitar", "effect_chain": _CHAIN_CLEAN_GUITAR}
     if "guitar" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Overdrive Guitar",
-                "icon": icon, "color": RED}
+                "icon": icon, "color": RED,
+                "soundbank_patch": "Strat-Guitar", "effect_chain": _CHAIN_OVERDRIVE}
     # Piano/keys (electric piano before generic piano)
     if "electric piano" in name_lower:
         return {"set_type": "electricPiano", "sound_path": "Orchestra/Keyboard/Electric Piano",
-                "icon": icon, "color": PURPLE}
+                "icon": icon, "color": PURPLE,
+                "soundbank_patch": None, "effect_chain": _CHAIN_ORCHESTRAL}
     if "piano" in name_lower or "keyboard" in name_lower or "organ" in name_lower:
         return {"set_type": "piano", "sound_path": "Keys/Pianos/Grand Piano",
-                "icon": icon, "color": PURPLE}
+                "icon": icon, "color": PURPLE,
+                "soundbank_patch": None, "effect_chain": _CHAIN_ORCHESTRAL}
     # Strings
     strings = {"violin": ("violin", "Violin"), "viola": ("viola", "Viola"),
                "cello": ("cello", "Cello"), "contrabass": ("contrabass", "Contrabass")}
     for key, (stype, gp_name) in strings.items():
         if key in name_lower:
             return {"set_type": stype, "sound_path": f"Orchestra/Strings/{gp_name}",
-                    "icon": icon, "color": GREEN}
+                    "icon": icon, "color": GREEN,
+                    "soundbank_patch": _ORCHESTRAL_PATCHES.get(key),
+                    "effect_chain": _CHAIN_ORCHESTRAL}
     # Brass
     brass = {"trumpet": ("trumpet", "Trumpet"), "trombone": ("trombone", "Trombone"),
              "tuba": ("tuba", "Tuba"), "french horn": ("frenchHorn", "French Horn")}
     for key, (stype, gp_name) in brass.items():
         if key in name_lower:
             return {"set_type": stype, "sound_path": f"Orchestra/Winds/{gp_name}",
-                    "icon": icon, "color": GREEN}
+                    "icon": icon, "color": GREEN,
+                    "soundbank_patch": None, "effect_chain": _CHAIN_ORCHESTRAL}
     # Woodwinds (match "sax" in addition to "saxophone")
     woodwinds = {"flute": ("flute", "Flute"), "oboe": ("oboe", "Oboe"),
                  "clarinet": ("clarinet", "Clarinet"), "bassoon": ("bassoon", "Bassoon"),
@@ -309,11 +347,14 @@ def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
     for key, (stype, gp_name) in woodwinds.items():
         if key in name_lower:
             return {"set_type": stype, "sound_path": f"Orchestra/Winds/{gp_name}",
-                    "icon": icon, "color": GREEN}
+                    "icon": icon, "color": GREEN,
+                    "soundbank_patch": _ORCHESTRAL_PATCHES.get(key),
+                    "effect_chain": _CHAIN_ORCHESTRAL}
     # Default to electric guitar
     return {"set_type": "electricGuitar",
             "sound_path": "Stringed/Electric Guitars/Overdrive Guitar",
-            "icon": icon, "color": RED}
+            "icon": icon, "color": RED,
+            "soundbank_patch": "Strat-Guitar", "effect_chain": _CHAIN_OVERDRIVE}
 
 
 # ---------------------------------------------------------------------------
@@ -777,20 +818,15 @@ class GPIFBuilder:
 </Elements>
 </InstrumentSet>'''
 
-        # Drum sound name is always "Drumkit"
-        sound_name = "Drumkit" if is_drums else instrument_name
-
         # MIDI connection: drums must be on channel 9
         if is_drums:
             midi_conn = '<MidiConnection>\n<Port>0</Port>\n<PrimaryChannel>9</PrimaryChannel>\n<SecondaryChannel>9</SecondaryChannel>\n<ForeOneChannelPerString>false</ForeOneChannelPerString>\n</MidiConnection>'
         else:
             midi_conn = '<MidiConnection>\n<Port>0</Port>\n<PrimaryChannel/>\n<SecondaryChannel/>\n<ForeOneChannelPerString>false</ForeOneChannelPerString>\n</MidiConnection>'
 
-        # Drum automations include Sound automation
-        if is_drums:
-            automations = '<Automations>\n<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n<Bar>0</Bar>\n<Position>0</Position>\n<Visible>true</Visible>\n<Value>Drums/Drums/Drumkit;Drumkit;Factory</Value>\n</Automation>\n</Automations>'
-        else:
-            automations = '<Automations/>'
+        # Build Sounds and Automations
+        sounds_list = track_data.get("sounds", [])
+        track_autos = track_data.get("trackAutomations", {}).get("trackSoundAutomations", [])
 
         parts = [f'<Track id="{track_idx}">']
         parts.append(f'<Name><![CDATA[{name}]]></Name>')
@@ -807,20 +843,85 @@ class GPIFBuilder:
         parts.append('<Transpose>\n<Chromatic>0</Chromatic>\n<Octave>-1</Octave>\n</Transpose>')
         parts.append('<RSE>\n<ChannelStrip version="E56">\n<Parameters>0.6 0.68 1 0.62 0.75 0.5 0.66 0.18 0.6 0 0.5 0.5 0.80 0.5 0.5 0.5</Parameters>\n</ChannelStrip>\n</RSE>')
         parts.append('<ForcedSound>-1</ForcedSound>')
+
+        # Build <Sounds> block
         if is_drums:
-            parts.append(f'<Sounds>\n<Sound>\n<Name><![CDATA[Drumkit]]></Name>\n<Label><![CDATA[Drumkit]]></Label>\n<Path>Drums/Drums/Drumkit</Path>\n<Role>Factory</Role>\n<MIDI>\n<LSB>0</LSB>\n<MSB>0</MSB>\n<Program>0</Program>\n</MIDI>\n<RSE>\n<SoundbankPatch>Drumkit-Master</SoundbankPatch>\n<ElementsSettings/>\n<Pickups>\n<OverloudPosition>0</OverloudPosition>\n<Volumes>1 1</Volumes>\n<Tones>0.5 0.5</Tones>\n</Pickups>\n</RSE>\n</Sound>\n</Sounds>')
+            parts.append('<Sounds>\n<Sound>\n<Name><![CDATA[Drumkit]]></Name>\n<Label><![CDATA[Drumkit]]></Label>\n<Path>Drums/Drums/Drumkit</Path>\n<Role>Factory</Role>\n<MIDI>\n<LSB>0</LSB>\n<MSB>0</MSB>\n<Program>0</Program>\n</MIDI>\n<RSE>\n<SoundbankPatch>Drumkit-Master</SoundbankPatch>\n<ElementsSettings>\n</ElementsSettings>\n<Pickups>\n<OverloudPosition>0</OverloudPosition>\n<Volumes>1 1</Volumes>\n<Tones>1 1</Tones>\n</Pickups>\n<EffectChain>\n<Effect id="M06_DynamicAnalogDynamic">\n<Parameters>0.42 0.14 0.39 0.38 0.7 0.4 0.72 0.5</Parameters>\n</Effect>\n<Effect id="M08_GraphicEQ10Band">\n<Parameters>0 0 0.708333 0.591837 0.591837 0.55102 0.510204 0.408163 0.367347 0.387755 0.530612 0.612245 0.693878</Parameters>\n</Effect>\n<Effect id="M05_StudioReverbPlatePercussive">\n<Parameters>1 0.38 0.3 0.5 0.5</Parameters>\n</Effect>\n</EffectChain>\n</RSE>\n</Sound>\n</Sounds>')
+        elif sounds_list and len(sounds_list) > 1:
+            # Multi-sound track: build a Sound entry for each alternate instrument
+            sound_entries = []
+            for snd in sounds_list:
+                snd_type = get_instrument_type(snd["label"], snd.get("instrumentId", 25))
+                sound_entries.append(self._build_sound_xml(
+                    snd["label"], snd.get("instrumentId", instrument_id), snd_type))
+            parts.append('<Sounds>\n' + '\n'.join(sound_entries) + '\n</Sounds>')
         else:
-            parts.append(f'<Sounds>\n<Sound>\n<Name><![CDATA[{escape_xml(sound_name)}]]></Name>\n<Label><![CDATA[{escape_xml(sound_name)}]]></Label>\n<Path>{inst_type["sound_path"]}</Path>\n<Role>User</Role>\n<MIDI>\n<LSB>0</LSB>\n<MSB>0</MSB>\n<Program>{instrument_id}</Program>\n</MIDI>\n</Sound>\n</Sounds>')
+            # Single sound
+            parts.append('<Sounds>\n' + self._build_sound_xml(
+                instrument_name, instrument_id, inst_type) + '\n</Sounds>')
+
         parts.append(midi_conn)
         parts.append('<PlaybackState>Default</PlaybackState>')
         parts.append('<AudioEngineState>RSE</AudioEngineState>')
         parts.append(f'<Lyrics dispatched="true">\n{chr(10).join(lyrics_lines)}\n</Lyrics>')
         parts.append(self._build_staves_xml(is_drums, frets, num_strings, tuning_str))
+
+        # Build <Automations> block
+        if is_drums:
+            automations = '<Automations>\n<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n<Bar>0</Bar>\n<Position>0</Position>\n<Visible>true</Visible>\n<Value>Drums/Drums/Drumkit;Drumkit;Factory</Value>\n</Automation>\n</Automations>'
+        elif track_autos and sounds_list:
+            auto_parts = ['<Automations>']
+            for sa in track_autos:
+                sid = sa["soundId"]
+                snd = sounds_list[sid] if sid < len(sounds_list) else sounds_list[0]
+                snd_type = get_instrument_type(snd["label"], snd.get("instrumentId", 25))
+                bar = sa["measure"]
+                pos = sa.get("position", 0) / 960 if sa.get("position", 0) else 0
+                auto_parts.append(
+                    f'<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n'
+                    f'<Bar>{bar}</Bar>\n<Position>{pos}</Position>\n<Visible>true</Visible>\n'
+                    f'<Value>{snd_type["sound_path"]};{escape_xml(snd["label"])};User</Value>\n</Automation>')
+            auto_parts.append('</Automations>')
+            automations = '\n'.join(auto_parts)
+        else:
+            # Single-sound: add a default Sound automation at bar 0
+            automations = (
+                f'<Automations>\n<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n'
+                f'<Bar>0</Bar>\n<Position>0</Position>\n<Visible>true</Visible>\n'
+                f'<Value>{inst_type["sound_path"]};{escape_xml(instrument_name)};User</Value>\n'
+                f'</Automation>\n</Automations>')
         parts.append(automations)
         if is_drums:
             parts.append(DRUM_NOTATION_PATCH)
         parts.append('</Track>')
         return '\n'.join(parts)
+
+    @staticmethod
+    def _build_sound_xml(instrument_name: str, instrument_id: int, inst_type: dict) -> str:
+        """Build a <Sound> XML block with RSE config for a non-drum instrument."""
+        fx_parts = []
+        for fx_id, fx_params in inst_type.get("effect_chain", []):
+            fx_parts.append(f'<Effect id="{fx_id}">\n<Parameters>{fx_params}</Parameters>\n</Effect>')
+        fx_chain = '\n'.join(fx_parts)
+
+        sb_patch = inst_type.get("soundbank_patch")
+        sb_xml = f'<SoundbankPatch>{sb_patch}</SoundbankPatch>' if sb_patch else '<SoundbankPatch/>'
+
+        return (
+            f'<Sound>\n'
+            f'<Name><![CDATA[{escape_xml(instrument_name)}]]></Name>\n'
+            f'<Label><![CDATA[{escape_xml(instrument_name)}]]></Label>\n'
+            f'<Path>{inst_type["sound_path"]}</Path>\n'
+            f'<Role>User</Role>\n'
+            f'<MIDI>\n<LSB>0</LSB>\n<MSB>0</MSB>\n<Program>{instrument_id}</Program>\n</MIDI>\n'
+            f'<RSE>\n'
+            f'{sb_xml}\n'
+            f'<ElementsSettings>\n</ElementsSettings>\n'
+            f'<Pickups>\n<OverloudPosition>0</OverloudPosition>\n'
+            f'<Volumes>1 1</Volumes>\n<Tones>1 1</Tones>\n</Pickups>\n'
+            f'<EffectChain>\n{fx_chain}\n</EffectChain>\n'
+            f'</RSE>\n'
+            f'</Sound>')
 
     def _build_staves_xml(self, is_drums: bool, frets: int, num_strings: int, tuning_str: str) -> str:
         if is_drums:
