@@ -473,7 +473,7 @@ class GPIFBuilder:
 
     # --- Note ---
 
-    def _process_note(self, note_data: dict) -> int | None:
+    def _process_note(self, note_data: dict, let_ring: bool = False) -> int | None:
         if note_data.get("rest"):
             return None
         nid = self._alloc("note")
@@ -499,6 +499,7 @@ class GPIFBuilder:
             "bend": note_data.get("bend"), "slide": note_data.get("slide"),
             "ghost": note_data.get("ghost", False), "staccato": note_data.get("staccato", False),
             "accentuated": note_data.get("accentuated"),
+            "let_ring": let_ring,
         }
 
         if obj["tie_destination"] and gp_string in self._last_note_on_string:
@@ -583,6 +584,9 @@ class GPIFBuilder:
         if obj.get("ghost"):
             lines.append('  <AntiAccent>Normal</AntiAccent>')
 
+        if obj.get("let_ring"):
+            lines.append('  <LetRing/>')
+
         lines.append('</Note>')
         return '\n'.join(lines)
 
@@ -595,9 +599,10 @@ class GPIFBuilder:
 
         note_ids = []
         is_rest = beat_data.get("rest", False)
+        let_ring = beat_data.get("letRing", False)
         if not is_rest:
             for note in beat_data.get("notes", []):
-                nid = self._process_note(note)
+                nid = self._process_note(note, let_ring=let_ring)
                 if nid is not None:
                     note_ids.append(nid)
         if not note_ids:
@@ -622,6 +627,10 @@ class GPIFBuilder:
             text = beat_data["text"].get("text", "")
             if text:
                 beat_obj["free_text"] = text
+
+        grace = beat_data.get("graceNote")
+        if grace:
+            beat_obj["grace"] = "OnBeat" if grace == "onBeat" else "BeforeBeat"
 
         if "tremoloBar" in beat_data:
             tb = beat_data["tremoloBar"]
@@ -713,6 +722,7 @@ class GPIFBuilder:
             obj.get("hopo_origin", False), obj.get("hopo_destination", False),
             bend_sig, obj.get("slide"), obj.get("ghost", False),
             obj.get("staccato", False), obj.get("accentuated"),
+            obj.get("let_ring", False),
         )
 
     def _dedup_notes(self):
@@ -733,7 +743,7 @@ class GPIFBuilder:
         return (
             obj["rhythm_id"], obj["dynamic"], canonical_notes,
             obj.get("hairpin"), obj.get("free_text"),
-            obj.get("whammy"), lyrics_sig,
+            obj.get("whammy"), lyrics_sig, obj.get("grace"),
         )
 
     def _dedup_beats(self):
@@ -757,6 +767,9 @@ class GPIFBuilder:
         lines.append('    <Property name="PrimaryPickupTone"><Float>0.500000</Float></Property>')
         lines.append('  </Properties>')
         lines.append(f'  <Dynamic>{obj["dynamic"]}</Dynamic>')
+
+        if "grace" in obj:
+            lines.append(f'  <GraceNotes>{obj["grace"]}</GraceNotes>')
 
         if "hairpin" in obj:
             lines.append(f'  <Hairpin>{obj["hairpin"]}</Hairpin>')

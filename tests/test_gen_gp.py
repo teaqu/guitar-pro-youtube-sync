@@ -1190,6 +1190,175 @@ class TestBeatLevelLyrics:
         assert len(lyrics_texts) == 2
 
 
+class TestGraceNotes:
+    """Tests for grace note handling (Songsterr graceNote -> GP GraceNotes)."""
+
+    def _build_gpif(self, tracks, meta=None):
+        builder = GPIFBuilder(tracks, meta or {"artist": "Test", "title": "Test"})
+        return builder.build()
+
+    def _make_track(self, beats):
+        """Helper to create a single-measure track with given beats."""
+        return {
+            "name": "Guitar", "instrument": "Distortion Guitar",
+            "strings": 6, "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": [{"voices": [{"beats": beats}]}],
+        }
+
+    def test_grace_note_on_beat(self):
+        """graceNote='onBeat' should produce <GraceNotes>OnBeat</GraceNotes>."""
+        track = self._make_track([
+            {"type": 32, "graceNote": "onBeat", "notes": [{"fret": 3, "string": 2}]},
+            {"type": 8, "notes": [{"fret": 5, "string": 2}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+        assert "<GraceNotes>OnBeat</GraceNotes>" in gpif_xml
+
+    def test_grace_note_before_beat(self):
+        """graceNote='beforeBeat' should produce <GraceNotes>BeforeBeat</GraceNotes>."""
+        track = self._make_track([
+            {"type": 16, "graceNote": "beforeBeat", "notes": [{"fret": 3, "string": 2}]},
+            {"type": 8, "notes": [{"fret": 5, "string": 2}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+        assert "<GraceNotes>BeforeBeat</GraceNotes>" in gpif_xml
+
+    def test_no_grace_note_without_flag(self):
+        """Beats without graceNote should not have <GraceNotes>."""
+        track = self._make_track([
+            {"type": 8, "notes": [{"fret": 5, "string": 2}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+        assert "<GraceNotes>" not in gpif_xml
+
+    def test_grace_note_dedup_separation(self):
+        """Grace and non-grace beats with same notes/rhythm must not be deduplicated."""
+        track = self._make_track([
+            {"type": 32, "graceNote": "onBeat", "notes": [{"fret": 3, "string": 2}]},
+            {"type": 32, "notes": [{"fret": 3, "string": 2}]},
+        ])
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        root = ET.fromstring(gpif_xml)
+        beats_with_grace = [b for b in root.find('Beats') if b.find('GraceNotes') is not None]
+        beats_without_grace = [b for b in root.find('Beats')
+                               if b.find('GraceNotes') is None and b.find('Notes') is not None]
+        # Both beats should exist as separate elements
+        assert len(beats_with_grace) >= 1
+        assert len(beats_without_grace) >= 1
+        # Their IDs must differ
+        grace_ids = {b.get('id') for b in beats_with_grace}
+        non_grace_ids = {b.get('id') for b in beats_without_grace}
+        assert grace_ids.isdisjoint(non_grace_ids)
+
+    def test_grace_note_in_full_measure(self):
+        """A measure with a grace note should not overflow when parsed correctly."""
+        track = self._make_track([
+            {"type": 8, "notes": [{"fret": 0, "string": 4}]},
+            {"type": 32, "graceNote": "onBeat", "notes": [{"fret": 3, "string": 2}]},
+            {"type": 8, "notes": [{"fret": 4, "string": 2}]},
+            {"type": 8, "notes": [{"fret": 4, "string": 2}]},
+            {"type": 8, "notes": [{"fret": 0, "string": 3}]},
+            {"type": 8, "notes": [{"fret": 4, "string": 2}]},
+            {"type": 8, "notes": [{"fret": 3, "string": 3}]},
+            {"type": 8, "notes": [{"fret": 4, "string": 2}]},
+            {"type": 8, "notes": [{"fret": 0, "string": 1}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+
+        root = ET.fromstring(gpif_xml)
+        # The grace note beat should have the GraceNotes tag
+        grace_beats = [b for b in root.find('Beats') if b.find('GraceNotes') is not None]
+        assert len(grace_beats) >= 1
+        assert grace_beats[0].find('GraceNotes').text == "OnBeat"
+
+
+class TestLetRing:
+    """Tests for let ring handling (Songsterr letRing -> GP LetRing)."""
+
+    def _build_gpif(self, tracks, meta=None):
+        builder = GPIFBuilder(tracks, meta or {"artist": "Test", "title": "Test"})
+        return builder.build()
+
+    def _make_track(self, beats):
+        return {
+            "name": "Guitar", "instrument": "Distortion Guitar",
+            "strings": 6, "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": [{"voices": [{"beats": beats}]}],
+        }
+
+    def test_let_ring_on_notes(self):
+        """letRing=True on a beat should produce <LetRing/> on its notes."""
+        track = self._make_track([
+            {"type": 8, "letRing": True, "notes": [{"fret": 0, "string": 3}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+        assert "<LetRing/>" in gpif_xml
+
+    def test_no_let_ring_without_flag(self):
+        """Beats without letRing should not produce <LetRing/> on notes."""
+        track = self._make_track([
+            {"type": 8, "notes": [{"fret": 0, "string": 3}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+        assert "<LetRing/>" not in gpif_xml
+
+    def test_let_ring_multiple_notes_in_beat(self):
+        """All notes in a letRing beat should get <LetRing/>."""
+        track = self._make_track([
+            {"type": 4, "letRing": True, "notes": [
+                {"fret": 0, "string": 0},
+                {"fret": 2, "string": 1},
+                {"fret": 2, "string": 2},
+            ]},
+        ])
+        gpif_xml = self._build_gpif([track])
+
+        root = ET.fromstring(gpif_xml)
+        notes_with_lr = [n for n in root.find('Notes') if n.find('LetRing') is not None]
+        assert len(notes_with_lr) == 3
+
+    def test_let_ring_dedup_separation(self):
+        """Notes with and without letRing on same fret/string must not be deduplicated."""
+        track = self._make_track([
+            {"type": 8, "letRing": True, "notes": [{"fret": 0, "string": 3}]},
+            {"type": 8, "notes": [{"fret": 0, "string": 3}]},
+        ])
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        root = ET.fromstring(gpif_xml)
+        notes_with_lr = [n for n in root.find('Notes') if n.find('LetRing') is not None]
+        notes_without_lr = [n for n in root.find('Notes') if n.find('LetRing') is None]
+        assert len(notes_with_lr) >= 1
+        assert len(notes_without_lr) >= 1
+        lr_ids = {n.get('id') for n in notes_with_lr}
+        no_lr_ids = {n.get('id') for n in notes_without_lr}
+        assert lr_ids.isdisjoint(no_lr_ids)
+
+    def test_let_ring_mixed_beats(self):
+        """Only beats with letRing=True should have notes with <LetRing/>."""
+        track = self._make_track([
+            {"type": 8, "letRing": True, "notes": [{"fret": 0, "string": 3}]},
+            {"type": 8, "notes": [{"fret": 2, "string": 3}]},
+            {"type": 8, "letRing": True, "notes": [{"fret": 3, "string": 3}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+
+        root = ET.fromstring(gpif_xml)
+        notes_with_lr = [n for n in root.find('Notes') if n.find('LetRing') is not None]
+        # Frets 0 and 3 should have LetRing, fret 2 should not
+        lr_frets = set()
+        for n in notes_with_lr:
+            for prop in n.findall('.//Property'):
+                if prop.get('name') == 'Fret':
+                    lr_frets.add(prop.find('Fret').text)
+        assert '0' in lr_frets
+        assert '3' in lr_frets
+        assert '2' not in lr_frets
+
+
 class TestLyricsSkipSentinels:
     """Tests for the space-based skip sentinel mechanism in lyrics positioning."""
 
