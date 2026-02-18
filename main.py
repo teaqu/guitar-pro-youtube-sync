@@ -159,6 +159,34 @@ def prompt_video_type(entries: list[dict], tracks_meta: list[dict]) -> dict:
     return selected["entry"]
 
 
+def prompt_existing_gp_file() -> Path | None:
+    """Prompt user for an existing GP file to sync, or None to generate a new one."""
+    print("\nSync audio to:")
+    print("  1. Generate new GP file (default)")
+    print("  2. Use existing GP file")
+
+    while True:
+        choice = input("Choice [1]: ").strip()
+        if choice in ("", "1"):
+            return None
+        if choice == "2":
+            break
+        print("  Please enter 1 or 2")
+
+    while True:
+        path_str = input("  Path to GP file: ").strip().strip("'\"")
+        if not path_str:
+            continue
+        gp_path = Path(path_str).expanduser().resolve()
+        if gp_path.is_file() and gp_path.suffix.lower() in (".gp", ".gpx", ".gp5", ".gp4"):
+            print(f"  Using: {gp_path}")
+            return gp_path
+        if not gp_path.exists():
+            print(f"  File not found: {gp_path}")
+        else:
+            print(f"  Not a Guitar Pro file: {gp_path}")
+
+
 def try_download_audio(video_id: str, audio_path: Path, trim_start: float, config: dict) -> bool:
     """Attempt to download audio, with automatic retry using saved browser and manual prompt.
 
@@ -230,27 +258,35 @@ def process_song(config: dict) -> None:
     num_tracks = len(meta.get("tracks", []))
     print(f"  Found: {artist} - {title} ({num_tracks} tracks)")
 
-    include_audio = prompt_yes_no("\nInclude YouTube audio?", default=True)
-
+    # Check for existing GP file to sync
     safe_name = "".join(c if c.isalnum() or c in " -_" else "" for c in f"{artist} - {title}").strip()
-    total_steps = 3 if include_audio else 1
+    existing_gp = prompt_existing_gp_file()
 
-    # Step 1: Generate GP file
-    print(f"\n[1/{total_steps}] Generating Guitar Pro file...")
-    try:
-        gp_meta, tracks = gen_gp.fetch_all_tracks(song_id)
-        gp_file = Path(f"{safe_name or 'output'}.gp").resolve()
-        gen_gp.generate_gp(tracks, gp_file, gp_meta)
-    except Exception as e:
-        print(f"\n  Error generating GP file: {e}")
-        return
+    if existing_gp:
+        gp_file = existing_gp
+        include_audio = True
+        total_steps = 2
+    else:
+        include_audio = prompt_yes_no("\nInclude YouTube audio?", default=True)
+        total_steps = 3 if include_audio else 1
 
-    if not include_audio:
-        print(f"\nDone! File saved to: {gp_file}")
-        return
+        # Step 1: Generate GP file
+        print(f"\n[1/{total_steps}] Generating Guitar Pro file...")
+        try:
+            gp_meta, tracks = gen_gp.fetch_all_tracks(song_id)
+            gp_file = Path(f"{safe_name or 'output'}.gp").resolve()
+            gen_gp.generate_gp(tracks, gp_file, gp_meta)
+        except Exception as e:
+            print(f"\n  Error generating GP file: {e}")
+            return
 
-    # Step 2: Download audio
-    print(f"\n[2/{total_steps}] Fetching video data...")
+        if not include_audio:
+            print(f"\nDone! File saved to: {gp_file}")
+            return
+
+    # Download audio
+    step = total_steps - 1
+    print(f"\n[{step}/{total_steps}] Fetching video data...")
     revision_id = meta["revisionId"]
     try:
         entries = fetch_video_points(song_id, revision_id)
@@ -269,8 +305,8 @@ def process_song(config: dict) -> None:
 
     audio_ok = try_download_audio(video_id, audio_path, trim_start, config)
 
-    # Step 3: Sync
-    print(f"\n[3/{total_steps}] Syncing audio with tab...")
+    # Sync
+    print(f"\n[{total_steps}/{total_steps}] Syncing audio with tab...")
     synced_path = gp_file.parent / f"{gp_file.stem}_synced{gp_file.suffix}"
     mp3_path = audio_path if audio_ok else None
     bpms = sync_gp_file(gp_file, points, synced_path, mp3_path=mp3_path)

@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import prompt_yes_no, prompt_browser_choice, prompt_video_type, _format_feature_name, BROWSERS
+from main import prompt_yes_no, prompt_browser_choice, prompt_video_type, prompt_existing_gp_file, _format_feature_name, BROWSERS
 
 
 class TestPromptYesNo:
@@ -181,3 +181,81 @@ class TestPromptVideoType:
         output = capsys.readouterr().out
         assert "https://youtu.be/back1" in output
         assert "https://youtu.be/back2" in output
+
+
+class TestPromptExistingGpFile:
+    """Tests for prompt_existing_gp_file."""
+
+    def test_default_returns_none(self, monkeypatch):
+        """Pressing enter generates a new file."""
+        monkeypatch.setattr("builtins.input", lambda _: "")
+        assert prompt_existing_gp_file() is None
+
+    def test_option_1_returns_none(self, monkeypatch):
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        assert prompt_existing_gp_file() is None
+
+    def test_valid_gp_file(self, monkeypatch, tmp_path):
+        gp_file = tmp_path / "test.gp"
+        gp_file.write_bytes(b"fake gp data")
+        inputs = iter(["2", str(gp_file)])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+        result = prompt_existing_gp_file()
+        assert result == gp_file.resolve()
+
+    def test_valid_gpx_file(self, monkeypatch, tmp_path):
+        gp_file = tmp_path / "test.gpx"
+        gp_file.write_bytes(b"fake gpx data")
+        inputs = iter(["2", str(gp_file)])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+        result = prompt_existing_gp_file()
+        assert result is not None
+        assert result.suffix == ".gpx"
+
+    def test_valid_gp5_file(self, monkeypatch, tmp_path):
+        gp_file = tmp_path / "test.gp5"
+        gp_file.write_bytes(b"fake gp5 data")
+        inputs = iter(["2", str(gp_file)])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+        result = prompt_existing_gp_file()
+        assert result is not None
+
+    def test_nonexistent_file_reprompts(self, monkeypatch, tmp_path):
+        """Non-existent path reprompts, then accepts valid path."""
+        gp_file = tmp_path / "real.gp"
+        gp_file.write_bytes(b"data")
+        inputs = iter(["2", "/nonexistent/file.gp", str(gp_file)])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+        result = prompt_existing_gp_file()
+        assert result == gp_file.resolve()
+
+    def test_wrong_extension_reprompts(self, monkeypatch, tmp_path):
+        """Non-GP file reprompts, then accepts valid path."""
+        txt_file = tmp_path / "notes.txt"
+        txt_file.write_text("hello")
+        gp_file = tmp_path / "real.gp"
+        gp_file.write_bytes(b"data")
+        inputs = iter(["2", str(txt_file), str(gp_file)])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+        result = prompt_existing_gp_file()
+        assert result == gp_file.resolve()
+
+    def test_strips_single_quotes(self, monkeypatch, tmp_path):
+        """Pasted paths wrapped in single quotes are handled."""
+        gp_file = tmp_path / "test.gp"
+        gp_file.write_bytes(b"data")
+        quoted = f"'{gp_file}'"
+        inputs = iter(["2", quoted])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+        result = prompt_existing_gp_file()
+        assert result == gp_file.resolve()
+
+    def test_strips_double_quotes(self, monkeypatch, tmp_path):
+        """Pasted paths wrapped in double quotes are handled."""
+        gp_file = tmp_path / "test.gp"
+        gp_file.write_bytes(b"data")
+        quoted = f'"{gp_file}"'
+        inputs = iter(["2", quoted])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+        result = prompt_existing_gp_file()
+        assert result == gp_file.resolve()
