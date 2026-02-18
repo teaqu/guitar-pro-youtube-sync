@@ -13,6 +13,7 @@ import gen_gp
 from sync import (
     fetch_song_meta,
     fetch_video_points,
+    get_video_options,
     select_video_entry,
     download_youtube_audio,
     sync_gp_file,
@@ -60,6 +61,102 @@ def prompt_browser_choice() -> str | None:
             print(f"  Please enter a number between 1 and {skip_num}")
         except ValueError:
             print("  Please enter a number")
+
+
+def _format_feature_name(feature: str) -> str:
+    """Convert a feature key like 'backing' to a display name like 'Backing Track'."""
+    names = {"backing": "Backing Track", "solo": "Solo", "playthrough": "Playthrough"}
+    return names.get(feature, feature.replace("_", " ").title())
+
+
+def prompt_video_type(entries: list[dict], tracks_meta: list[dict]) -> dict:
+    """Prompt user to select video type from dynamically discovered categories.
+
+    Returns the selected video entry dict.
+    """
+    options = get_video_options(entries, tracks_meta)
+    full_mix = options["full_mix"]
+    categories = options["categories"]  # e.g. {"backing": [...], "solo": [...], "playthrough": [...]}
+
+    # If only full mix is available, skip the menu
+    if not categories:
+        if full_mix:
+            print(f"  Using: Full Mix ({full_mix['videoId']})")
+            return full_mix
+        return select_video_entry(entries)
+
+    # Build category menu
+    menu = []  # list of (display_label, key_or_none)
+    if full_mix:
+        menu.append(("Full Mix", None))
+    for key, items in categories.items():
+        name = _format_feature_name(key)
+        count = f" ({len(items)} available)" if len(items) > 1 else ""
+        menu.append((f"{name}{count}", key))
+
+    print("\nSelect video type:")
+    for i, (label, key) in enumerate(menu, 1):
+        default_tag = " (default)" if i == 1 else ""
+        if key is None:
+            vid = full_mix["videoId"]
+        elif len(categories[key]) == 1:
+            vid = categories[key][0]["entry"]["videoId"]
+        else:
+            vid = None
+        vid_tag = f"  https://youtu.be/{vid}" if vid else ""
+        print(f"  {i}. {label}{default_tag}{vid_tag}")
+
+    while True:
+        try:
+            choice = input(f"Choice [1]: ").strip()
+            if choice == "":
+                idx = 0
+            else:
+                idx = int(choice) - 1
+            if 0 <= idx < len(menu):
+                break
+            print(f"  Please enter a number between 1 and {len(menu)}")
+        except ValueError:
+            print("  Please enter a number")
+
+    _, category_key = menu[idx]
+
+    if category_key is None:
+        print(f"  Using: Full Mix ({full_mix['videoId']})")
+        return full_mix
+
+    # Sub-select for the chosen category
+    items = categories[category_key]
+    type_label = _format_feature_name(category_key).lower()
+
+    # If only one option, use it directly
+    if len(items) == 1:
+        item = items[0]
+        print(f"  Using: {_format_feature_name(category_key)} - {item['label']}")
+        return item["entry"]
+
+    # Show sub-menu
+    print(f"\nSelect {type_label}:")
+    for i, item in enumerate(items, 1):
+        vid = item["entry"]["videoId"]
+        print(f"  {i}. {item['label']}  https://youtu.be/{vid}")
+
+    while True:
+        try:
+            choice = input(f"Choice [1]: ").strip()
+            if choice == "":
+                sub_idx = 0
+            else:
+                sub_idx = int(choice) - 1
+            if 0 <= sub_idx < len(items):
+                break
+            print(f"  Please enter a number between 1 and {len(items)}")
+        except ValueError:
+            print("  Please enter a number")
+
+    selected = items[sub_idx]
+    print(f"  Using: {_format_feature_name(category_key)} - {selected['label']}")
+    return selected["entry"]
 
 
 def try_download_audio(video_id: str, audio_path: Path, trim_start: float, config: dict) -> bool:
@@ -153,11 +250,12 @@ def process_song(config: dict) -> None:
         return
 
     # Step 2: Download audio
-    print(f"\n[2/{total_steps}] Downloading YouTube audio...")
+    print(f"\n[2/{total_steps}] Fetching video data...")
     revision_id = meta["revisionId"]
     try:
         entries = fetch_video_points(song_id, revision_id)
-        entry = select_video_entry(entries)
+        tracks_meta = meta.get("tracks", [])
+        entry = prompt_video_type(entries, tracks_meta)
     except Exception as e:
         print(f"\n  Error fetching video data: {e}")
         print("  Continuing without audio...")

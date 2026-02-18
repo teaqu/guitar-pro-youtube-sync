@@ -3,6 +3,7 @@
 
 import pytest
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # Add parent directory to path to import modules
@@ -716,7 +717,8 @@ class TestTokenizeLyrics:
         assert tokenize_lyrics("   ") == []
 
     def test_multiple_spaces(self):
-        assert tokenize_lyrics("word1   word2") == ["word1", "word2"]
+        """Multiple spaces within a line produce skip sentinels (N-1 for N spaces)."""
+        assert tokenize_lyrics("word1   word2") == ["word1", "\n", "\n", "word2"]
 
     def test_no_hyphens(self):
         assert tokenize_lyrics("just plain words here") == ["just", "plain", "words", "here"]
@@ -907,6 +909,190 @@ class TestBeatLevelLyrics:
         assert "only-" in lyrics_texts
         assert "one" in lyrics_texts
         assert len(lyrics_texts) == 2
+
+
+class TestLyricsSkipSentinels:
+    """Tests for the space-based skip sentinel mechanism in lyrics positioning."""
+
+    def test_leading_spaces_produce_sentinels(self):
+        """Leading spaces on a line emit skip sentinels between phrases."""
+        tokens = tokenize_lyrics("hello.\n   world")
+        assert tokens == ["hello.", "\n", "\n", "\n", "world"]
+
+    def test_trailing_spaces_contribute_to_next_line(self):
+        """Trailing spaces on a line add to the skip count for the next phrase."""
+        tokens = tokenize_lyrics("hello.  \nworld")
+        assert tokens == ["hello.", "\n", "\n", "world"]
+
+    def test_trailing_plus_leading_spaces_combine(self):
+        """Trailing + leading spaces combine for total skip count."""
+        tokens = tokenize_lyrics("end.  \n   start")
+        # 2 trailing + 3 leading = 5 sentinels
+        assert tokens == ["end.", "\n", "\n", "\n", "\n", "\n", "start"]
+
+    def test_no_sentinels_without_extra_spaces(self):
+        """Lines without leading/trailing spaces produce no sentinels."""
+        tokens = tokenize_lyrics("line one.\nline two.")
+        assert tokens == ["line", "one.", "line", "two."]
+
+    def test_internal_double_space_produces_sentinel(self):
+        """Double spaces within a line produce a skip sentinel between words."""
+        tokens = tokenize_lyrics("lear  jet.")
+        assert tokens == ["lear", "\n", "jet."]
+
+    def test_internal_triple_space_produces_two_sentinels(self):
+        """Triple spaces within a line produce two skip sentinels."""
+        tokens = tokenize_lyrics("a   b")
+        assert tokens == ["a", "\n", "\n", "b"]
+
+    def test_no_sentinels_at_start_of_first_line(self):
+        """Leading spaces on the very first line don't produce sentinels."""
+        tokens = tokenize_lyrics("   hello")
+        assert tokens == ["hello"]
+
+    def test_empty_lines_skipped(self):
+        """Empty lines between phrases don't produce spurious sentinels."""
+        tokens = tokenize_lyrics("hello.\n\n\nworld")
+        assert tokens == ["hello.", "world"]
+
+    def test_hyphens_preserved_with_sentinels(self):
+        """Hyphenated syllables work correctly alongside sentinels."""
+        tokens = tokenize_lyrics("Mo-ney.\n   Mo-ney")
+        assert tokens == ["Mo-", "ney.", "\n", "\n", "\n", "Mo-", "ney"]
+
+    def _make_vocal_track(self, measures_spec, lyrics_text, lyrics_offset=0):
+        """Build a minimal vocal track from a compact measure spec.
+
+        measures_spec: list of lists, each inner list describes beats in a measure.
+            'n' = note beat, 'r' = rest beat
+        """
+        measures = []
+        for beats_spec in measures_spec:
+            beats = []
+            for b in beats_spec:
+                if b == 'r':
+                    beats.append({"type": 4, "rest": True})
+                else:
+                    beats.append({"type": 4, "notes": [{"fret": 0, "string": 0}]})
+            measures.append({"voices": [{"beats": beats}]})
+        return {
+            "name": "Vocals", "instrument": "Lead 6 (voice)",
+            "strings": 6, "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": measures,
+            "newLyrics": [{"text": lyrics_text, "offset": lyrics_offset}],
+        }
+
+    @staticmethod
+    def _get_beat_lyrics(builder):
+        """Extract ordered list of lyric texts from built XML."""
+        gpif_xml = builder.build()
+        root = ET.fromstring(gpif_xml)
+
+        voice_beats = {}
+        for voice in root.find('Voices'):
+            vid = voice.get('id')
+            be = voice.find('Beats')
+            if be is not None and be.text:
+                voice_beats[vid] = be.text.strip().split()
+
+        bar_voice0 = {}
+        for bar in root.find('Bars'):
+            bid = bar.get('id')
+            ve = bar.find('Voices')
+            if ve is not None and ve.text:
+                vs = ve.text.strip().split()
+                if vs and vs[0] != '-1':
+                    bar_voice0[bid] = vs[0]
+
+        beat_lyrics = {}
+        for beat in root.find('Beats'):
+            bid = beat.get('id')
+            lyrics_el = beat.find('Lyrics')
+            if lyrics_el is not None:
+                line = lyrics_el.find('Line')
+                if line is not None and line.text:
+                    beat_lyrics[bid] = line.text
+
+        result = []
+        for mb in root.find('MasterBars'):
+            bars_el = mb.find('Bars')
+            if bars_el is None:
+                continue
+            bar0_id = bars_el.text.strip().split()[0]
+            v0_id = bar_voice0.get(bar0_id)
+            if not v0_id:
+                continue
+            for bid in voice_beats.get(v0_id, []):
+                if bid in beat_lyrics:
+                    result.append(beat_lyrics[bid])
+        return result
+
+    def test_skip_sentinels_skip_note_beats(self):
+        """Skip sentinels cause note-beats to be skipped during assignment."""
+        # 2 measures, 3 note-beats each. Lyrics: "end.\n\n\nstart" = 2 sentinels
+        track = self._make_vocal_track(
+            [['n', 'n', 'n'], ['n', 'n', 'n']],
+            "end.\n  start",  # 2 leading = 2 sentinels
+        )
+        builder = GPIFBuilder([track], {"artist": "T", "title": "T"})
+        lyrics = self._get_beat_lyrics(builder)
+        # 'end.' on beat 0, then 2 skipped, then 'start' on beat 3
+        assert lyrics == ["end.", "start"]
+
+    def test_skip_sentinels_with_rests(self):
+        """Skipping counts only note-beats; rests are already non-eligible."""
+        # m0: [n, n], m1: [r, r], m2: [n, n, n]
+        # 2 sentinels should skip 2 note-beats in m2
+        track = self._make_vocal_track(
+            [['n', 'n'], ['r', 'r'], ['n', 'n', 'n']],
+            "end.\n  start",
+        )
+        builder = GPIFBuilder([track], {"artist": "T", "title": "T"})
+        lyrics = self._get_beat_lyrics(builder)
+        # 'end.' on m0 beat 0, skip 2 note-beats (m2 b0, m2 b1), 'start' on m2 b2
+        assert lyrics == ["end.", "start"]
+
+    def test_internal_skip_between_words(self):
+        """Internal double-space skip should skip a note-beat mid-phrase."""
+        # 4 note-beats, lyrics "a  b" = skip 1 between a and b
+        track = self._make_vocal_track(
+            [['n', 'n', 'n', 'n']],
+            "a  b",
+        )
+        builder = GPIFBuilder([track], {"artist": "T", "title": "T"})
+        lyrics = self._get_beat_lyrics(builder)
+        # 'a' on beat 0, skip beat 1, 'b' on beat 2
+        assert lyrics == ["a", "b"]
+
+    def test_no_skip_single_space(self):
+        """Normal single-space word separation should not skip any beats."""
+        track = self._make_vocal_track(
+            [['n', 'n', 'n']],
+            "a b c",
+        )
+        builder = GPIFBuilder([track], {"artist": "T", "title": "T"})
+        lyrics = self._get_beat_lyrics(builder)
+        assert lyrics == ["a", "b", "c"]
+
+    def test_excess_tokens_ignored(self):
+        """More lyric tokens than note-beats: extras are silently dropped."""
+        track = self._make_vocal_track(
+            [['n', 'n']],
+            "a b c d e",
+        )
+        builder = GPIFBuilder([track], {"artist": "T", "title": "T"})
+        lyrics = self._get_beat_lyrics(builder)
+        assert lyrics == ["a", "b"]
+
+    def test_excess_beats_no_lyrics(self):
+        """More note-beats than tokens: trailing beats get no lyrics."""
+        track = self._make_vocal_track(
+            [['n', 'n', 'n', 'n', 'n']],
+            "a b",
+        )
+        builder = GPIFBuilder([track], {"artist": "T", "title": "T"})
+        lyrics = self._get_beat_lyrics(builder)
+        assert lyrics == ["a", "b"]
 
 
 if __name__ == "__main__":

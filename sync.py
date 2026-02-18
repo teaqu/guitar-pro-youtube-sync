@@ -49,8 +49,73 @@ def fetch_song_meta(song_id: int) -> dict:
     return resp.json()
 
 
+def get_video_options(entries: list[dict], tracks_meta: list[dict] | None = None) -> dict:
+    """Group video entries by feature type, dynamically discovering categories.
+
+    Returns a dict like:
+        {"full_mix": entry, "categories": {"backing": [...], "solo": [...], "playthrough": [...]}}
+    where each category list contains {"entry": ..., "label": ...} items.
+    """
+    # Full Mix: feature=None (default), with alternatives as fallback
+    full_mix = None
+    defaults = [e for e in entries if e.get("feature") is None]
+    if defaults:
+        full_mix = defaults[0]
+    else:
+        alternatives = [e for e in entries if e.get("feature") == "alternative" and e.get("status") == "done"]
+        universal = [e for e in alternatives if e.get("countries") == ["All"]]
+        if universal:
+            full_mix = universal[0]
+        elif alternatives:
+            full_mix = alternatives[0]
+
+    def _track_label(track_indices):
+        if track_indices is None or track_indices == "All":
+            return "All instruments"
+        if not tracks_meta:
+            return f"Tracks {track_indices}"
+        names = []
+        for idx in track_indices:
+            if idx < len(tracks_meta):
+                name = tracks_meta[idx].get("name", f"Track {idx}")
+                # Use short name: take the part after the last " - " if present
+                short = name.rsplit(" - ", 1)[-1] if " - " in name else name
+                names.append(short)
+            else:
+                names.append(f"Track {idx}")
+        return ", ".join(names)
+
+    # Discover all non-null, non-alternative feature types dynamically
+    skip_features = {None, "alternative"}
+    feature_types = []
+    seen_features = set()
+    for e in entries:
+        f = e.get("feature")
+        if f not in skip_features and f not in seen_features:
+            seen_features.add(f)
+            feature_types.append(f)
+
+    categories = {}
+    for feature in feature_types:
+        seen_videos = set()
+        items = []
+        for e in entries:
+            if e.get("feature") == feature and e.get("status") == "done":
+                vid = e["videoId"]
+                if vid not in seen_videos:
+                    seen_videos.add(vid)
+                    items.append({"entry": e, "label": _track_label(e.get("tracks"))})
+        if items:
+            categories[feature] = items
+
+    return {
+        "full_mix": full_mix,
+        "categories": categories,
+    }
+
+
 def select_video_entry(entries: list[dict], video_index: int | None = None) -> dict:
-    """Select which video entry to use for timing.
+    """Select which video entry to use for timing (auto-select for CLI).
 
     Priority: manual index > default (feature=None) > universal alternative > alternative > backing > first.
     The default entry (feature=None) is the original video shown on the Songsterr website.
@@ -58,7 +123,7 @@ def select_video_entry(entries: list[dict], video_index: int | None = None) -> d
     if video_index is not None:
         if video_index < len(entries):
             entry = entries[video_index]
-            print(f"  Using entry {video_index}: videoId={entry['videoId']}, feature={entry.get('feature')}, points={len(entry['points'])}")
+            print(f"  Using entry {video_index}: https://youtu.be/{entry['videoId']}, feature={entry.get('feature')}, points={len(entry['points'])}")
             return entry
         else:
             print(f"  WARNING: video_index {video_index} out of range, falling back to auto-select")
@@ -67,29 +132,29 @@ def select_video_entry(entries: list[dict], video_index: int | None = None) -> d
     defaults = [e for e in entries if e.get("feature") is None]
     if defaults:
         entry = defaults[0]
-        print(f"  Auto-selected default video: videoId={entry['videoId']}, points={len(entry['points'])}")
+        print(f"  Auto-selected default video: https://youtu.be/{entry['videoId']}, points={len(entry['points'])}")
         return entry
 
     alternatives = [e for e in entries if e.get("feature") == "alternative" and e.get("status") == "done"]
     universal = [e for e in alternatives if e.get("countries") == ["All"]]
     if universal:
         entry = universal[0]
-        print(f"  Auto-selected universal alternative: videoId={entry['videoId']}, points={len(entry['points'])}")
+        print(f"  Auto-selected universal alternative: https://youtu.be/{entry['videoId']}, points={len(entry['points'])}")
         return entry
 
     if alternatives:
         entry = alternatives[0]
-        print(f"  Auto-selected alternative: videoId={entry['videoId']}, points={len(entry['points'])}")
+        print(f"  Auto-selected alternative: https://youtu.be/{entry['videoId']}, points={len(entry['points'])}")
         return entry
 
     backings = [e for e in entries if e.get("feature") == "backing" and e.get("status") == "done"]
     if backings:
         entry = backings[0]
-        print(f"  Auto-selected backing: videoId={entry['videoId']}, points={len(entry['points'])}")
+        print(f"  Auto-selected backing: https://youtu.be/{entry['videoId']}, points={len(entry['points'])}")
         return entry
 
     entry = entries[0]
-    print(f"  Fallback to first entry: videoId={entry['videoId']}, points={len(entry['points'])}")
+    print(f"  Fallback to first entry: https://youtu.be/{entry['videoId']}, points={len(entry['points'])}")
     return entry
 
 
@@ -464,14 +529,15 @@ def print_summary(bpms: list[float], points: list[float]) -> None:
 def list_video_entries(entries: list[dict]) -> None:
     """Print all available video entries for user selection."""
     print("\nAvailable video entries:")
-    print(f"{'Idx':>4} {'VideoID':>13} {'Feature':>12} {'Points':>7} {'Tracks':>10} {'Countries':>12}")
-    print("-" * 65)
+    print(f"{'Idx':>4} {'Feature':>12} {'Points':>7} {'Tracks':>10} {'Countries':>15}  {'URL'}")
+    print("-" * 93)
     for i, e in enumerate(entries):
         countries = e.get("countries")
         country_str = "All" if countries == ["All"] else (f"{len(countries)} countries" if countries else "N/A")
         tracks = e.get("tracks") or "All"
         feature = e.get("feature") or "N/A"
-        print(f"{i:>4} {e['videoId']:>13} {feature:>12} {len(e['points']):>7} {str(tracks):>10} {country_str:>12}")
+        url = f"https://youtu.be/{e['videoId']}"
+        print(f"{i:>4} {feature:>12} {len(e['points']):>7} {str(tracks):>10} {country_str:>15}  {url}")
 
 
 def main():

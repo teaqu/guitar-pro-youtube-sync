@@ -153,11 +153,24 @@ def tokenize_lyrics(text: str) -> list[str]:
 
     Words are separated by whitespace, and hyphens within words split syllables.
     The hyphen is kept with the preceding syllable (e.g., "Mo-ney" -> ["Mo-", "ney"]).
+
+    Spaces encode the number of note-beats to skip:
+
+    * **Leading/trailing** spaces on each line contribute to the skip count at
+      phrase boundaries.  Between consecutive non-empty lines the skip count is
+      ``trailing_spaces(prev_line) + leading_spaces(next_line)``.
+    * **Internal multi-spaces** (2+ consecutive spaces within a line) contribute
+      ``len(run) - 1`` additional skips between the surrounding tokens.
+
+    Each skip is emitted as a ``'\\n'`` sentinel token consumed by
+    ``_assign_lyrics()``.
     """
-    tokens = []
-    for word in re.split(r'[\s]+', text):
-        if not word:
-            continue
+    tokens: list[str] = []
+    lines = text.split('\n')
+    prev_trailing = 0
+
+    def _tokenize_word(word: str):
+        """Split a word into syllable tokens on hyphens."""
         parts = re.split(r'(-)', word)
         current = ''
         for p in parts:
@@ -169,6 +182,34 @@ def tokenize_lyrics(text: str) -> list[str]:
                 current += p
         if current:
             tokens.append(current)
+
+    for line in lines:
+        leading = len(line) - len(line.lstrip(' '))
+        trailing = len(line) - len(line.rstrip(' '))
+        inner = line.strip()
+
+        if not inner:
+            continue  # skip empty lines
+
+        # Emit inter-line skip sentinels
+        skip_count = prev_trailing + leading
+        if tokens and skip_count > 0:
+            tokens.extend('\n' for _ in range(skip_count))
+
+        # Split inner text on runs of 2+ spaces (kept as separators)
+        segments = re.split(r'( {2,})', inner)
+        for segment in segments:
+            if not segment:
+                continue
+            if segment[0] == ' ':
+                # Multi-space run → (len - 1) skip sentinels
+                tokens.extend('\n' for _ in range(len(segment) - 1))
+            else:
+                for word in segment.split():
+                    _tokenize_word(word)
+
+        prev_trailing = trailing
+
     return tokens
 
 
@@ -875,6 +916,8 @@ class GPIFBuilder:
 
             # For each lyric line, assign tokens to note-beats starting from offset
             line_iterators: list[int] = [0] * num_lines  # current token index per line
+            # Beats remaining to skip per line (from '\n' sentinels)
+            line_skip_remaining: list[int] = [0] * num_lines
 
             # Walk beats from the earliest offset
             min_offset = min(line_offsets[i] for i in range(num_lines) if line_tokens[i])
@@ -882,8 +925,9 @@ class GPIFBuilder:
 
             for beat_pos_idx in range(start_beat, len(beat_info)):
                 bid, has_notes = beat_info[beat_pos_idx]
+
                 if not has_notes:
-                    continue
+                    continue  # rest beats never get lyrics
 
                 # Determine which measure this beat belongs to
                 current_measure = 0
@@ -900,6 +944,21 @@ class GPIFBuilder:
                         continue
                     if current_measure < line_offsets[li]:
                         continue
+
+                    # Consume '\n' skip sentinels (only when not mid-skip)
+                    if line_skip_remaining[li] == 0:
+                        count = 0
+                        while (line_iterators[li] < len(line_tokens[li]) and
+                               line_tokens[li][line_iterators[li]] == '\n'):
+                            count += 1
+                            line_iterators[li] += 1
+                        line_skip_remaining[li] = count
+
+                    # Skip note-beats for phrase breaks
+                    if line_skip_remaining[li] > 0:
+                        line_skip_remaining[li] -= 1
+                        continue
+
                     if line_iterators[li] < len(line_tokens[li]):
                         lyrics_for_beat[li] = line_tokens[li][line_iterators[li]]
                         line_iterators[li] += 1

@@ -20,6 +20,8 @@ from sync import (
     generate_asset_sha1,
     get_original_tempo,
     select_video_entry,
+    get_video_options,
+    list_video_entries,
     download_youtube_audio,
 )
 
@@ -309,6 +311,277 @@ class TestCookiesOption:
             download_youtube_audio("test123", output_path, trim_start=0.0, cookies_browser=browser)
             opts = mock_ydl_cls.call_args[0][0]
             assert opts["cookiesfrombrowser"] == (browser,)
+
+
+class TestGetVideoOptions:
+    """Tests for get_video_options grouping logic."""
+
+    TRACKS_META = [
+        {"name": "Lead Vocals", "instrument": "voice"},
+        {"name": "David Gilmour - Lead Guitar", "instrument": "guitar"},
+        {"name": "Roger Waters - Bass", "instrument": "bass"},
+        {"name": "Nick Mason - Drums", "instrument": "drums"},
+    ]
+
+    def _entry(self, video_id, feature=None, status="done", tracks=None, countries=None):
+        return {
+            "videoId": video_id,
+            "feature": feature,
+            "status": status,
+            "tracks": tracks,
+            "countries": countries,
+            "points": [0, 1, 2],
+        }
+
+    def test_full_mix_from_default(self):
+        entries = [
+            self._entry("default1", feature=None),
+            self._entry("alt1", feature="alternative"),
+        ]
+        opts = get_video_options(entries)
+        assert opts["full_mix"]["videoId"] == "default1"
+
+    def test_full_mix_fallback_to_universal_alternative(self):
+        entries = [
+            self._entry("alt1", feature="alternative", countries=["US"]),
+            self._entry("alt2", feature="alternative", countries=["All"]),
+        ]
+        opts = get_video_options(entries)
+        assert opts["full_mix"]["videoId"] == "alt2"
+
+    def test_full_mix_fallback_to_any_alternative(self):
+        entries = [
+            self._entry("alt1", feature="alternative", countries=["US"]),
+        ]
+        opts = get_video_options(entries)
+        assert opts["full_mix"]["videoId"] == "alt1"
+
+    def test_full_mix_none_when_no_default_or_alternative(self):
+        entries = [
+            self._entry("back1", feature="backing"),
+        ]
+        opts = get_video_options(entries)
+        assert opts["full_mix"] is None
+
+    def test_backing_tracks_collected(self):
+        entries = [
+            self._entry("default1", feature=None),
+            self._entry("back1", feature="backing", tracks=None),
+            self._entry("back2", feature="backing", tracks=[2]),
+        ]
+        opts = get_video_options(entries)
+        assert len(opts["categories"]["backing"]) == 2
+        assert opts["categories"]["backing"][0]["entry"]["videoId"] == "back1"
+        assert opts["categories"]["backing"][1]["entry"]["videoId"] == "back2"
+
+    def test_solo_tracks_collected(self):
+        entries = [
+            self._entry("default1", feature=None),
+            self._entry("solo1", feature="solo", tracks=[0]),
+            self._entry("solo2", feature="solo", tracks=[1, 3]),
+        ]
+        opts = get_video_options(entries)
+        assert len(opts["categories"]["solo"]) == 2
+        assert opts["categories"]["solo"][0]["entry"]["videoId"] == "solo1"
+        assert opts["categories"]["solo"][1]["entry"]["videoId"] == "solo2"
+
+    def test_skips_non_done_entries(self):
+        entries = [
+            self._entry("default1", feature=None),
+            self._entry("back1", feature="backing", status="processing"),
+            self._entry("solo1", feature="solo", status="failed"),
+        ]
+        opts = get_video_options(entries)
+        assert "backing" not in opts["categories"]
+        assert "solo" not in opts["categories"]
+
+    def test_deduplicates_by_video_id(self):
+        entries = [
+            self._entry("default1", feature=None),
+            self._entry("back1", feature="backing", tracks=None),
+            self._entry("back1", feature="backing", tracks=[2]),
+        ]
+        opts = get_video_options(entries)
+        assert len(opts["categories"]["backing"]) == 1
+
+    def test_track_label_with_metadata(self):
+        entries = [
+            self._entry("back1", feature="backing", tracks=[1, 2]),
+        ]
+        opts = get_video_options(entries, self.TRACKS_META)
+        assert opts["categories"]["backing"][0]["label"] == "Lead Guitar, Bass"
+
+    def test_track_label_all_instruments(self):
+        entries = [
+            self._entry("back1", feature="backing", tracks=None),
+        ]
+        opts = get_video_options(entries, self.TRACKS_META)
+        assert opts["categories"]["backing"][0]["label"] == "All instruments"
+
+    def test_track_label_without_metadata(self):
+        entries = [
+            self._entry("back1", feature="backing", tracks=[1, 2]),
+        ]
+        opts = get_video_options(entries, tracks_meta=None)
+        assert opts["categories"]["backing"][0]["label"] == "Tracks [1, 2]"
+
+    def test_track_label_short_name_extraction(self):
+        """Track names with ' - ' should use the part after the last separator."""
+        tracks_meta = [
+            {"name": "Roger Waters - Fender Precision Bass", "instrument": "bass"},
+        ]
+        entries = [
+            self._entry("back1", feature="backing", tracks=[0]),
+        ]
+        opts = get_video_options(entries, tracks_meta)
+        assert opts["categories"]["backing"][0]["label"] == "Fender Precision Bass"
+
+    def test_track_label_index_out_of_range(self):
+        entries = [
+            self._entry("back1", feature="backing", tracks=[99]),
+        ]
+        opts = get_video_options(entries, self.TRACKS_META)
+        assert opts["categories"]["backing"][0]["label"] == "Track 99"
+
+    def test_alternatives_not_in_categories(self):
+        entries = [
+            self._entry("default1", feature=None),
+            self._entry("alt1", feature="alternative"),
+            self._entry("alt2", feature="alternative", countries=["All"]),
+        ]
+        opts = get_video_options(entries)
+        assert "alternative" not in opts["categories"]
+        assert len(opts["categories"]) == 0
+
+    def test_discovers_unknown_feature_types(self):
+        """Any feature type from the API should be collected dynamically."""
+        entries = [
+            self._entry("default1", feature=None),
+            self._entry("pt1", feature="playthrough", tracks=[1]),
+            self._entry("lesson1", feature="lesson", tracks=None),
+        ]
+        opts = get_video_options(entries, self.TRACKS_META)
+        assert "playthrough" in opts["categories"]
+        assert "lesson" in opts["categories"]
+        assert opts["categories"]["playthrough"][0]["entry"]["videoId"] == "pt1"
+        assert opts["categories"]["lesson"][0]["label"] == "All instruments"
+
+    def test_category_order_matches_entry_order(self):
+        """Categories should appear in the order their feature is first seen."""
+        entries = [
+            self._entry("solo1", feature="solo", tracks=[0]),
+            self._entry("back1", feature="backing", tracks=None),
+            self._entry("pt1", feature="playthrough", tracks=[1]),
+        ]
+        opts = get_video_options(entries, self.TRACKS_META)
+        keys = list(opts["categories"].keys())
+        assert keys == ["solo", "backing", "playthrough"]
+
+    def test_realistic_mixed_entries(self):
+        """Simulate a real song with all three types."""
+        entries = [
+            self._entry("alt1", feature="alternative", countries=["All"]),
+            self._entry("alt2", feature="alternative", countries=["US"]),
+            self._entry("back_all", feature="backing", tracks=None),
+            self._entry("back_bass", feature="backing", tracks=[2]),
+            self._entry("solo_guitar", feature="solo", tracks=[1]),
+            self._entry("default1", feature=None),
+        ]
+        opts = get_video_options(entries, self.TRACKS_META)
+        assert opts["full_mix"]["videoId"] == "default1"
+        assert len(opts["categories"]["backing"]) == 2
+        assert len(opts["categories"]["solo"]) == 1
+        assert opts["categories"]["backing"][0]["label"] == "All instruments"
+        assert opts["categories"]["backing"][1]["label"] == "Bass"
+        assert opts["categories"]["solo"][0]["label"] == "Lead Guitar"
+
+    def test_realistic_with_playthrough(self):
+        """Simulate Nirvana Heart Shaped Box with playthrough."""
+        entries = [
+            self._entry("default1", feature=None),
+            self._entry("alt1", feature="alternative", countries=["All"]),
+            self._entry("back1", feature="backing", tracks=None),
+            self._entry("solo1", feature="solo", tracks=[0]),
+            self._entry("pt1", feature="playthrough", tracks=[1, 3]),
+        ]
+        opts = get_video_options(entries, self.TRACKS_META)
+        assert opts["full_mix"]["videoId"] == "default1"
+        cats = opts["categories"]
+        assert set(cats.keys()) == {"backing", "solo", "playthrough"}
+        assert cats["playthrough"][0]["label"] == "Lead Guitar, Drums"
+
+
+class TestListVideoEntries:
+    """Tests for list_video_entries output formatting."""
+
+    def _entry(self, video_id, feature=None, status="done", tracks=None, countries=None):
+        return {
+            "videoId": video_id,
+            "feature": feature,
+            "status": status,
+            "tracks": tracks,
+            "countries": countries,
+            "points": [0, 1, 2],
+        }
+
+    def test_shows_youtube_urls(self, capsys):
+        entries = [self._entry("abc123", feature="backing")]
+        list_video_entries(entries)
+        output = capsys.readouterr().out
+        assert "https://youtu.be/abc123" in output
+
+    def test_shows_all_countries(self, capsys):
+        entries = [self._entry("vid1", feature="alternative", countries=["All"])]
+        list_video_entries(entries)
+        output = capsys.readouterr().out
+        assert "All" in output
+
+    def test_shows_country_count(self, capsys):
+        entries = [self._entry("vid1", feature="alternative", countries=["US", "GB", "DE"])]
+        list_video_entries(entries)
+        output = capsys.readouterr().out
+        assert "3 countries" in output
+
+    def test_shows_na_for_no_countries(self, capsys):
+        entries = [self._entry("vid1", feature="backing")]
+        list_video_entries(entries)
+        output = capsys.readouterr().out
+        assert "N/A" in output
+
+    def test_shows_feature_or_na(self, capsys):
+        entries = [
+            self._entry("vid1", feature=None),
+            self._entry("vid2", feature="solo"),
+        ]
+        list_video_entries(entries)
+        output = capsys.readouterr().out
+        assert "N/A" in output
+        assert "solo" in output
+
+    def test_shows_tracks_or_all(self, capsys):
+        entries = [
+            self._entry("vid1", feature="backing", tracks=[1, 2]),
+            self._entry("vid2", feature="backing", tracks=None),
+        ]
+        list_video_entries(entries)
+        output = capsys.readouterr().out
+        assert "[1, 2]" in output
+        assert "All" in output
+
+    def test_multiple_entries_indexed(self, capsys):
+        entries = [
+            self._entry("vid1", feature="alternative"),
+            self._entry("vid2", feature="backing"),
+            self._entry("vid3", feature="solo"),
+        ]
+        list_video_entries(entries)
+        output = capsys.readouterr().out
+        lines = output.strip().split("\n")
+        # "Available video entries:" + header + separator + 3 entries = 6 lines
+        assert len(lines) == 6
+        assert "https://youtu.be/vid1" in lines[3]
+        assert "https://youtu.be/vid2" in lines[4]
+        assert "https://youtu.be/vid3" in lines[5]
 
 
 if __name__ == "__main__":
