@@ -587,8 +587,8 @@ class TestDrumTrackFeatures:
         # Should have sound automations
         assert "<Bar>20</Bar>" in gpif_xml
         assert "<Bar>36</Bar>" in gpif_xml
-        assert "Overdriven Guitar;User" in gpif_xml
-        assert "Electric Bass (pick);User" in gpif_xml
+        assert "Overdriven Guitar;User]]>" in gpif_xml
+        assert "Electric Bass (pick);User]]>" in gpif_xml
 
     def test_non_drum_sound_automation(self):
         """Single-sound non-drum tracks should still get a default Sound automation."""
@@ -608,7 +608,7 @@ class TestDrumTrackFeatures:
         builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
         gpif_xml = builder.build()
 
-        assert "Distortion Guitar;User</Value>" in gpif_xml
+        assert "Distortion Guitar;User]]></Value>" in gpif_xml
         assert "<Type>Sound</Type>" in gpif_xml
 
     def test_no_soundbank_patch_instrument(self):
@@ -663,6 +663,58 @@ class TestDrumTrackFeatures:
 
         assert "<Position>0.5</Position>" in gpif_xml
         assert "<Bar>10</Bar>" in gpif_xml
+
+    def test_sound_automation_value_cdata_wrapped(self):
+        """Sound automation <Value> must be CDATA-wrapped for GP8 to apply sound switches."""
+        tracks = [{
+            "name": "Guitar",
+            "instrument": "Distortion Guitar",
+            "instrumentId": 30,
+            "strings": 6,
+            "tuning": [64, 59, 55, 50, 45, 40],
+            "sounds": [
+                {"instrumentId": 30, "label": "Distortion Guitar"},
+                {"instrumentId": 27, "label": "Electric Guitar (clean)"},
+            ],
+            "trackAutomations": {
+                "trackSoundAutomations": [
+                    {"soundId": 1, "measure": 0, "position": 0},
+                    {"soundId": 0, "measure": 19, "position": 0},
+                ]
+            },
+            "measures": [
+                {
+                    "voices": [{"beats": [{"type": 4, "notes": [{"fret": 0, "string": 0}]}]}]
+                }
+            ]
+        }]
+
+        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        # Automation values must use CDATA or GP8 won't apply sound switches during playback
+        assert "<Value><![CDATA[Stringed/Electric Guitars/Clean Guitar;Electric Guitar (clean);User]]></Value>" in gpif_xml
+        assert "<Value><![CDATA[Stringed/Electric Guitars/Distortion Guitar;Distortion Guitar;User]]></Value>" in gpif_xml
+
+    def test_single_sound_automation_value_cdata_wrapped(self):
+        """Single-sound tracks should also have CDATA-wrapped automation values."""
+        tracks = [{
+            "name": "Guitar",
+            "instrument": "Distortion Guitar",
+            "instrumentId": 30,
+            "strings": 6,
+            "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": [
+                {
+                    "voices": [{"beats": [{"type": 4, "notes": [{"fret": 0, "string": 0}]}]}]
+                }
+            ]
+        }]
+
+        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert "<Value><![CDATA[Stringed/Electric Guitars/Distortion Guitar;Distortion Guitar;User]]></Value>" in gpif_xml
 
     def test_bass_rse_sound(self):
         """Bass tracks should get Pre-Bass patch and bass-specific EQ."""

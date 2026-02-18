@@ -866,9 +866,9 @@ class GPIFBuilder:
         parts.append(f'<Lyrics dispatched="true">\n{chr(10).join(lyrics_lines)}\n</Lyrics>')
         parts.append(self._build_staves_xml(is_drums, frets, num_strings, tuning_str))
 
-        # Build <Automations> block
+        # Build <Automations> block (Value must be CDATA-wrapped for GP8)
         if is_drums:
-            automations = '<Automations>\n<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n<Bar>0</Bar>\n<Position>0</Position>\n<Visible>true</Visible>\n<Value>Drums/Drums/Drumkit;Drumkit;Factory</Value>\n</Automation>\n</Automations>'
+            automations = '<Automations>\n<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n<Bar>0</Bar>\n<Position>0</Position>\n<Visible>true</Visible>\n<Value><![CDATA[Drums/Drums/Drumkit;Drumkit;Factory]]></Value>\n</Automation>\n</Automations>'
         elif track_autos and sounds_list:
             auto_parts = ['<Automations>']
             for sa in track_autos:
@@ -880,7 +880,7 @@ class GPIFBuilder:
                 auto_parts.append(
                     f'<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n'
                     f'<Bar>{bar}</Bar>\n<Position>{pos}</Position>\n<Visible>true</Visible>\n'
-                    f'<Value>{snd_type["sound_path"]};{escape_xml(snd["label"])};User</Value>\n</Automation>')
+                    f'<Value><![CDATA[{snd_type["sound_path"]};{snd["label"]};User]]></Value>\n</Automation>')
             auto_parts.append('</Automations>')
             automations = '\n'.join(auto_parts)
         else:
@@ -888,7 +888,7 @@ class GPIFBuilder:
             automations = (
                 f'<Automations>\n<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n'
                 f'<Bar>0</Bar>\n<Position>0</Position>\n<Visible>true</Visible>\n'
-                f'<Value>{inst_type["sound_path"]};{escape_xml(instrument_name)};User</Value>\n'
+                f'<Value><![CDATA[{inst_type["sound_path"]};{instrument_name};User]]></Value>\n'
                 f'</Automation>\n</Automations>')
         parts.append(automations)
         if is_drums:
