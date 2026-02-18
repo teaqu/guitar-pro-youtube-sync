@@ -91,7 +91,7 @@ class TestInstrumentType:
         result = get_instrument_type("Distortion Guitar", 30)
         assert result["set_type"] == "electricGuitar"
         assert "Distortion" in result["sound_path"]
-        assert result["icon"] == 4
+        assert result["icon"] == 24
         assert result["soundbank_patch"] == "Classic-Guitar"
         assert any("OverdriveScreamer" in fx_id for fx_id, _ in result["effect_chain"])
         assert any("BritishStack" in fx_id for fx_id, _ in result["effect_chain"])
@@ -122,7 +122,7 @@ class TestInstrumentType:
     def test_get_instrument_type_violin(self):
         result = get_instrument_type("Violin", 40)
         assert result["set_type"] == "violin"
-        assert result["icon"] == 14
+        assert result["icon"] == 11
         assert result["soundbank_patch"] == "Violin-Solo"
         assert any("Reverb" in fx_id for fx_id, _ in result["effect_chain"])
 

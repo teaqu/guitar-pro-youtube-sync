@@ -311,7 +311,7 @@ def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
     # Guitar variants
     if "distortion" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Distortion Guitar",
-                "icon": icon, "color": RED,
+                "icon": 24, "color": RED,
                 "soundbank_patch": "Classic-Guitar", "effect_chain": _CHAIN_DISTORTION}
     if "overdrive" in name_lower or "overdriven" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Overdrive Guitar",
@@ -346,7 +346,7 @@ def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
     for key, (stype, gp_name) in strings.items():
         if key in name_lower:
             return {"set_type": stype, "sound_path": f"Orchestra/Strings/{gp_name}",
-                    "icon": icon, "color": GREEN,
+                    "icon": 11, "color": GREEN,
                     "soundbank_patch": _ORCHESTRAL_PATCHES.get(key),
                     "effect_chain": _string_chains[key]}
     # Brass
