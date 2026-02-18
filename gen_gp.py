@@ -43,6 +43,78 @@ NOTE_NAMES = [
 
 SLIDE_MAP = {"below": 16, "above": 8, "toNext": 1, "legato": 1}
 
+# Songsterr tripletFeel -> GP TripletFeel mapping
+TRIPLET_FEEL_MAP = {
+    "8th": "Triplet8th",
+    "16th": "Triplet16th",
+}
+
+# Standard drum notation patch for drum tracks
+DRUM_NOTATION_PATCH = '''<NotationPatch>
+<Name>Drumkit-Standard</Name>
+<LineCount>5</LineCount>
+<Elements>
+<Element><Name>Snare</Name><Articulations>
+<Articulation><Name>Snare (hit)</Name><StaffLine>3</StaffLine></Articulation>
+<Articulation><Name>Snare (side stick)</Name><StaffLine>3</StaffLine></Articulation>
+<Articulation><Name>Snare (rim shot)</Name><StaffLine>3</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Charley</Name><Articulations>
+<Articulation><Name>Hi-Hat (closed)</Name><StaffLine>-1</StaffLine></Articulation>
+<Articulation><Name>Hi-Hat (half)</Name><StaffLine>-1</StaffLine></Articulation>
+<Articulation><Name>Hi-Hat (open)</Name><StaffLine>-1</StaffLine></Articulation>
+<Articulation><Name>Pedal Hi-Hat (hit)</Name><StaffLine>9</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Acoustic Kick Drum</Name><Articulations>
+<Articulation><Name>Kick (hit)</Name><StaffLine>8</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Kick Drum</Name><Articulations>
+<Articulation><Name>Kick (hit)</Name><StaffLine>7</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Tom Very High</Name><Articulations>
+<Articulation><Name>High Floor Tom (hit)</Name><StaffLine>1</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Tom High</Name><Articulations>
+<Articulation><Name>High Tom (hit)</Name><StaffLine>2</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Tom Medium</Name><Articulations>
+<Articulation><Name>Mid Tom (hit)</Name><StaffLine>4</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Tom Low</Name><Articulations>
+<Articulation><Name>Low Tom (hit)</Name><StaffLine>5</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Tom Very Low</Name><Articulations>
+<Articulation><Name>Very Low Tom (hit)</Name><StaffLine>6</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Ride</Name><Articulations>
+<Articulation><Name>Ride (edge)</Name><StaffLine>0</StaffLine></Articulation>
+<Articulation><Name>Ride (middle)</Name><StaffLine>0</StaffLine></Articulation>
+<Articulation><Name>Ride (bell)</Name><StaffLine>0</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Splash</Name><Articulations>
+<Articulation><Name>Splash (hit)</Name><StaffLine>-2</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>China</Name><Articulations>
+<Articulation><Name>China (hit)</Name><StaffLine>-3</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Crash High</Name><Articulations>
+<Articulation><Name>Crash high (hit)</Name><StaffLine>-2</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Crash Medium</Name><Articulations>
+<Articulation><Name>Crash medium (hit)</Name><StaffLine>-1</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Cowbell Low</Name><Articulations>
+<Articulation><Name>Cowbell low (hit)</Name><StaffLine>1</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Cowbell Medium</Name><Articulations>
+<Articulation><Name>Cowbell medium (hit)</Name><StaffLine>0</StaffLine></Articulation>
+</Articulations></Element>
+<Element><Name>Cowbell High</Name><Articulations>
+<Articulation><Name>Cowbell high (hit)</Name><StaffLine>-1</StaffLine></Articulation>
+</Articulations></Element>
+</Elements>
+</NotationPatch>'''
+
 # Standard GP drum kit: MIDI note -> articulation index
 DRUM_MIDI_TO_ART = {
     38: 0, 37: 1, 91: 2, 42: 3, 92: 4, 46: 5, 44: 6, 35: 7, 36: 8,
@@ -95,9 +167,16 @@ def get_instrument_type(instrument_name: str) -> dict:
     if "bass" in name_lower:
         return {"set_type": "electricBass", "sound_path": "Stringed/Basses/Clean Bass",
                 "icon": 5, "color": YELLOW}
+    # Synthesizer / voice leads
+    if "synth" in name_lower or "voice" in name_lower:
+        return {"set_type": "leadSynthesizer", "sound_path": "Orchestra/Synth/Lead",
+                "icon": 12, "color": PURPLE}
     # Guitar variants
-    if "distortion" in name_lower or "overdrive" in name_lower:
+    if "distortion" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Distortion Guitar",
+                "icon": 24, "color": RED}
+    if "overdrive" in name_lower or "overdriven" in name_lower:
+        return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Overdrive Guitar",
                 "icon": 24, "color": RED}
     if "clean" in name_lower and "guitar" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Clean Guitar",
@@ -108,7 +187,10 @@ def get_instrument_type(instrument_name: str) -> dict:
     if "guitar" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Overdrive Guitar",
                 "icon": 24, "color": RED}
-    # Piano/keys
+    # Piano/keys (electric piano before generic piano)
+    if "electric piano" in name_lower:
+        return {"set_type": "electricPiano", "sound_path": "Orchestra/Keyboard/Electric Piano",
+                "icon": 38, "color": PURPLE}
     if "piano" in name_lower or "keyboard" in name_lower or "organ" in name_lower:
         return {"set_type": "piano", "sound_path": "Keys/Pianos/Grand Piano",
                 "icon": 38, "color": PURPLE}
@@ -126,10 +208,10 @@ def get_instrument_type(instrument_name: str) -> dict:
         if key in name_lower:
             return {"set_type": stype, "sound_path": f"Orchestra/Winds/{instrument_name}",
                     "icon": icon, "color": GREEN}
-    # Woodwinds
+    # Woodwinds (match "sax" in addition to "saxophone")
     woodwinds = {"flute": ("flute", 16), "oboe": ("oboe", 14),
                  "clarinet": ("clarinet", 17), "bassoon": ("bassoon", 15),
-                 "saxophone": ("saxophone", 19)}
+                 "sax": ("saxophone", 19)}
     for key, (stype, icon) in woodwinds.items():
         if key in name_lower:
             return {"set_type": stype, "sound_path": f"Orchestra/Winds/{instrument_name}",
@@ -610,13 +692,18 @@ class GPIFBuilder:
         parts.append('<Transpose>\n<Chromatic>0</Chromatic>\n<Octave>-1</Octave>\n</Transpose>')
         parts.append('<RSE>\n<ChannelStrip version="E56">\n<Parameters>0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0 0.5 0.5 0.795 0.5 0.5 0.5</Parameters>\n</ChannelStrip>\n</RSE>')
         parts.append('<ForcedSound>-1</ForcedSound>')
-        parts.append(f'<Sounds>\n<Sound>\n<Name><![CDATA[{escape_xml(sound_name)}]]></Name>\n<Label><![CDATA[{escape_xml(sound_name)}]]></Label>\n<Path>{inst_type["sound_path"]}</Path>\n<Role>User</Role>\n<MIDI>\n<LSB>0</LSB>\n<MSB>0</MSB>\n<Program>{instrument_id}</Program>\n</MIDI>\n</Sound>\n</Sounds>')
+        if is_drums:
+            parts.append(f'<Sounds>\n<Sound>\n<Name><![CDATA[Drumkit]]></Name>\n<Label><![CDATA[Drumkit]]></Label>\n<Path>Drums/Drums/Drumkit</Path>\n<Role>Factory</Role>\n<MIDI>\n<LSB>0</LSB>\n<MSB>0</MSB>\n<Program>0</Program>\n</MIDI>\n<RSE>\n<SoundbankPatch>Drumkit-Master</SoundbankPatch>\n<ElementsSettings/>\n<Pickups>\n<OverloudPosition>0</OverloudPosition>\n<Volumes>1 1</Volumes>\n<Tones>0.5 0.5</Tones>\n</Pickups>\n</RSE>\n</Sound>\n</Sounds>')
+        else:
+            parts.append(f'<Sounds>\n<Sound>\n<Name><![CDATA[{escape_xml(sound_name)}]]></Name>\n<Label><![CDATA[{escape_xml(sound_name)}]]></Label>\n<Path>{inst_type["sound_path"]}</Path>\n<Role>User</Role>\n<MIDI>\n<LSB>0</LSB>\n<MSB>0</MSB>\n<Program>{instrument_id}</Program>\n</MIDI>\n</Sound>\n</Sounds>')
         parts.append(midi_conn)
         parts.append('<PlaybackState>Default</PlaybackState>')
         parts.append('<AudioEngineState>RSE</AudioEngineState>')
         parts.append(f'<Lyrics dispatched="true">\n{chr(10).join(lyrics_lines)}\n</Lyrics>')
         parts.append(self._build_staves_xml(is_drums, frets, num_strings, tuning_str))
         parts.append(automations)
+        if is_drums:
+            parts.append(DRUM_NOTATION_PATCH)
         parts.append('</Track>')
         return '\n'.join(parts)
 
@@ -698,9 +785,10 @@ class GPIFBuilder:
         # Build MasterBars (one per measure, referencing one bar from each track)
         num_measures = max(len(ids) for ids in track_bar_ids) if track_bar_ids else 0
         current_time_sig = "4/4"
+        current_triplet_feel = None
         master_bar_xmls = []
 
-        # Use first track for time signatures and markers
+        # Use first track for time signatures, markers, and triplet feel
         first_track_measures = self.tracks[0].get("measures", [])
 
         for i in range(num_measures):
@@ -708,6 +796,10 @@ class GPIFBuilder:
             sig = measure.get("signature")
             if sig:
                 current_time_sig = f"{sig[0]}/{sig[1]}"
+
+            # Track triplet feel changes (sticky, carries forward until changed)
+            if "tripletFeel" in measure:
+                current_triplet_feel = TRIPLET_FEEL_MAP.get(measure["tripletFeel"])
 
             # Collect bar IDs from each track for this measure
             bar_ids_for_measure = []
@@ -722,10 +814,6 @@ class GPIFBuilder:
             mb.append(f'  <Time>{current_time_sig}</Time>')
             mb.append(f'  <Bars>{" ".join(str(b) for b in bar_ids_for_measure)}</Bars>')
 
-            if "marker" in measure:
-                marker_text = measure["marker"].get("text", "")
-                mb.append(f'  <Section><Letter><![CDATA[]]></Letter><Text><![CDATA[{marker_text}]]></Text></Section>')
-
             mb.append('  <XProperties>')
             mb.append('    <XProperty id="1124139010"><Int>8</Int></XProperty>')
             mb.append('    <XProperty id="1124139264"><Int>2</Int></XProperty>')
@@ -733,6 +821,14 @@ class GPIFBuilder:
             mb.append('    <XProperty id="1124139266"><Int>2</Int></XProperty>')
             mb.append('    <XProperty id="1124139267"><Int>2</Int></XProperty>')
             mb.append('  </XProperties>')
+
+            if "marker" in measure:
+                marker_text = measure["marker"].get("text", "")
+                mb.append(f'  <Section><Text><![CDATA[{marker_text}]]></Text></Section>')
+
+            if current_triplet_feel:
+                mb.append(f'  <TripletFeel>{current_triplet_feel}</TripletFeel>')
+
             mb.append('</MasterBar>')
             master_bar_xmls.append('\n'.join(mb))
 
