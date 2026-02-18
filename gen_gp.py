@@ -241,22 +241,37 @@ def _icon_from_midi_program(instrument_id: int) -> int:
 
 
     # RSE effect chain presets (effect_id, parameters)
-_FX_OVERDRIVE_SCREAMER = ("E03_OverdriveScreamer", "0.85 0 0.67")
+# Overdrive pedal – different settings for distortion vs overdrive contexts
+_FX_OVERDRIVE_SCREAMER_DIST = ("E03_OverdriveScreamer", "0.85 0 0.67")
+_FX_OVERDRIVE_SCREAMER_OD = ("E03_OverdriveScreamer", "0.84 0.5 0.84")
+# Amp models
 _FX_STACK_BRITISH = ("A06_StackBritishStack", "1 0.91 0.67 0.32 0.69 0.51 0.95 0")
 _FX_STACK_BRITISH_VINTAGE = ("A05_StackBritishVintage", "0.85 0.67 0.36 0.66 0.52")
 _FX_STACK_CLASSIC = ("A10_StackClassic", "0.45 0 0 0.63 0.37 0.39 0.39 0.71")
 _FX_COMBO_TOP30 = ("A01_ComboTop30", "0.61 0.59 0.38 0.511667 0.21 0.29 0 0")
-_FX_EQ_GUITAR = ("E30_EqGEq", "0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949")
+# Guitar EQ – per-instrument presets
+_FX_EQ_GUITAR_DIST = ("E30_EqGEq", "0.171717 0.474747 0.474747 0.474747 0.474747 0.474747 0.474747 0.222222")
+_FX_EQ_GUITAR_OD = ("E30_EqGEq", "0.494949 0.373737 0.494949 0.40404 0.484848 0.484848 0.484848 0.363636")
+_FX_EQ_GUITAR_CLEAN = ("E30_EqGEq", "0.494949 0.232323 0.373737 0.494949 0.373737 0.494949 0.494949 0.777778")
+# Bass EQ
 _FX_EQ_BASS = ("E31_EqBEq", "0.657143 0.6 0.6 0.685714 0.342857 0.628571 0.714286 0.5")
+# 10-band EQ – per-instrument presets for orchestral
 _FX_EQ_10BAND = ("M08_GraphicEQ10Band", "0 0 0.5 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949")
+_FX_EQ_10BAND_VIOLIN = ("M08_GraphicEQ10Band", "1 1 0.96188 0.494949 0.494949 0.494949 0.494949 0.494949 0.363636 0.494949 0.444444 0.808081 0.606061")
+_FX_EQ_10BAND_VIOLA = ("M08_GraphicEQ10Band", "0 0 0.37616 0.494949 0.494949 0.606061 0.414141 0.333333 0.414141 0.494949 0.494949 0.494949 0.494949")
+_FX_EQ_10BAND_CELLO = ("M08_GraphicEQ10Band", "0 0 0.40476 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949")
+# Reverb
 _FX_REVERB_ROOM = ("M04_StudioReverbRoomAmbience", "1 0.30476 0.4 0.5 0.2")
 
 # Grouped effect chains per instrument category
-_CHAIN_DISTORTION = [_FX_OVERDRIVE_SCREAMER, _FX_STACK_BRITISH, _FX_EQ_GUITAR]
-_CHAIN_OVERDRIVE = [_FX_OVERDRIVE_SCREAMER, _FX_STACK_BRITISH_VINTAGE, _FX_EQ_GUITAR]
-_CHAIN_CLEAN_GUITAR = [_FX_COMBO_TOP30, _FX_EQ_GUITAR]
+_CHAIN_DISTORTION = [_FX_OVERDRIVE_SCREAMER_DIST, _FX_STACK_BRITISH, _FX_EQ_GUITAR_DIST]
+_CHAIN_OVERDRIVE = [_FX_OVERDRIVE_SCREAMER_OD, _FX_STACK_BRITISH_VINTAGE, _FX_EQ_GUITAR_OD]
+_CHAIN_CLEAN_GUITAR = [_FX_COMBO_TOP30, _FX_EQ_GUITAR_CLEAN]
 _CHAIN_BASS = [_FX_STACK_CLASSIC, _FX_EQ_BASS]
 _CHAIN_ORCHESTRAL = [_FX_EQ_10BAND, _FX_REVERB_ROOM]
+_CHAIN_VIOLIN = [_FX_EQ_10BAND_VIOLIN, _FX_REVERB_ROOM]
+_CHAIN_VIOLA = [_FX_EQ_10BAND_VIOLA, _FX_REVERB_ROOM]
+_CHAIN_CELLO = [_FX_EQ_10BAND_CELLO, _FX_REVERB_ROOM]
 
 # SoundbankPatch names for solo orchestral instruments
 _ORCHESTRAL_PATCHES: dict[str, str] = {
@@ -323,7 +338,9 @@ def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
         return {"set_type": "piano", "sound_path": "Keys/Pianos/Grand Piano",
                 "icon": icon, "color": PURPLE,
                 "soundbank_patch": None, "effect_chain": _CHAIN_ORCHESTRAL}
-    # Strings
+    # Strings – violin/viola/cello have instrument-specific EQ presets
+    _string_chains = {"violin": _CHAIN_VIOLIN, "viola": _CHAIN_VIOLA,
+                      "cello": _CHAIN_CELLO, "contrabass": _CHAIN_ORCHESTRAL}
     strings = {"violin": ("violin", "Violin"), "viola": ("viola", "Viola"),
                "cello": ("cello", "Cello"), "contrabass": ("contrabass", "Contrabass")}
     for key, (stype, gp_name) in strings.items():
@@ -331,7 +348,7 @@ def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
             return {"set_type": stype, "sound_path": f"Orchestra/Strings/{gp_name}",
                     "icon": icon, "color": GREEN,
                     "soundbank_patch": _ORCHESTRAL_PATCHES.get(key),
-                    "effect_chain": _CHAIN_ORCHESTRAL}
+                    "effect_chain": _string_chains[key]}
     # Brass
     brass = {"trumpet": ("trumpet", "Trumpet"), "trombone": ("trombone", "Trombone"),
              "tuba": ("tuba", "Tuba"), "french horn": ("frenchHorn", "French Horn")}

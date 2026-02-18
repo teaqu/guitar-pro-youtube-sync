@@ -177,6 +177,44 @@ class TestInstrumentType:
         assert result["set_type"] == "cello"
         assert result["soundbank_patch"] == "Cello-Solo"
 
+    def test_effect_params_distortion_guitar(self):
+        """Distortion guitar should use distortion-specific overdrive and EQ presets."""
+        result = get_instrument_type("Distortion Guitar", 30)
+        fx = {fid: params for fid, params in result["effect_chain"]}
+        assert fx["E03_OverdriveScreamer"] == "0.85 0 0.67"
+        assert fx["E30_EqGEq"] == "0.171717 0.474747 0.474747 0.474747 0.474747 0.474747 0.474747 0.222222"
+
+    def test_effect_params_overdrive_guitar(self):
+        """Overdrive guitar should use overdrive-specific pedal and EQ presets."""
+        result = get_instrument_type("Overdriven Guitar", 29)
+        fx = {fid: params for fid, params in result["effect_chain"]}
+        assert fx["E03_OverdriveScreamer"] == "0.84 0.5 0.84"
+        assert fx["E30_EqGEq"] == "0.494949 0.373737 0.494949 0.40404 0.484848 0.484848 0.484848 0.363636"
+
+    def test_effect_params_clean_guitar(self):
+        """Clean guitar should use clean-specific EQ preset."""
+        result = get_instrument_type("Electric Guitar (clean)", 27)
+        fx = {fid: params for fid, params in result["effect_chain"]}
+        assert fx["E30_EqGEq"] == "0.494949 0.232323 0.373737 0.494949 0.373737 0.494949 0.494949 0.777778"
+
+    def test_effect_params_violin(self):
+        """Violin should use violin-specific 10-band EQ preset."""
+        result = get_instrument_type("Violin", 40)
+        fx = {fid: params for fid, params in result["effect_chain"]}
+        assert fx["M08_GraphicEQ10Band"] == "1 1 0.96188 0.494949 0.494949 0.494949 0.494949 0.494949 0.363636 0.494949 0.444444 0.808081 0.606061"
+
+    def test_effect_params_viola(self):
+        """Viola should use viola-specific 10-band EQ preset."""
+        result = get_instrument_type("Viola", 41)
+        fx = {fid: params for fid, params in result["effect_chain"]}
+        assert fx["M08_GraphicEQ10Band"] == "0 0 0.37616 0.494949 0.494949 0.606061 0.414141 0.333333 0.414141 0.494949 0.494949 0.494949 0.494949"
+
+    def test_effect_params_cello(self):
+        """Cello should use cello-specific 10-band EQ preset."""
+        result = get_instrument_type("Cello", 42)
+        fx = {fid: params for fid, params in result["effect_chain"]}
+        assert fx["M08_GraphicEQ10Band"] == "0 0 0.40476 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949 0.494949"
+
     def test_get_instrument_type_default(self):
         # Unknown instrument should default to electric guitar
         result = get_instrument_type("Unknown Instrument")
