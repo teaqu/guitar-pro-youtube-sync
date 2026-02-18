@@ -12,10 +12,10 @@ Pre-built executables are available:
 | Platform | File |
 |----------|------|
 | Windows | `guitar-pro-sync-windows-x86_64.exe` |
-| macOS (Apple Silicon) | `guitar-pro-sync-macos-arm64` |
-| Linux | `guitar-pro-sync-linux-x86_64` |
+| macOS (Apple Silicon) | `guitar-pro-sync-macos-arm64.zip` |
+| Linux | `guitar-pro-sync-linux-x86_64.zip` |
 
-Just download, run, and follow the prompts. Everything (Python, yt-dlp, ffmpeg) is bundled inside the executable.
+Download and extract, then run and follow the prompts. Everything (Python, yt-dlp, ffmpeg) is bundled inside the executable.
 
 > **macOS:** You may see "Apple could not verify this app." Right-click the file, select **Open**, then click **Open** again to bypass Gatekeeper.
 >
