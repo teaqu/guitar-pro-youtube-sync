@@ -172,7 +172,34 @@ def tokenize_lyrics(text: str) -> list[str]:
     return tokens
 
 
-def get_instrument_type(instrument_name: str) -> dict:
+def _icon_from_midi_program(instrument_id: int) -> int:
+    """Map MIDI program number to GP icon ID (matches Songsterr's GP export)."""
+    if instrument_id >= 1024:
+        return 18  # Drums
+    if 0 <= instrument_id <= 7:
+        return 10  # Piano
+    if 8 <= instrument_id <= 15:
+        return 10  # Chromatic Percussion (vibraphone, etc.)
+    if 16 <= instrument_id <= 23:
+        return 10  # Organ
+    if 24 <= instrument_id <= 27:
+        return 3   # Acoustic/Clean Guitar
+    if 28 <= instrument_id <= 31:
+        return 4   # Overdriven/Distortion Guitar
+    if 32 <= instrument_id <= 39:
+        return 5   # Bass
+    if 40 <= instrument_id <= 55:
+        return 14  # Strings/Ensemble
+    if 56 <= instrument_id <= 63:
+        return 14  # Brass
+    if 64 <= instrument_id <= 79:
+        return 14  # Reed/Pipe (sax, oboe, flute, etc.)
+    if 80 <= instrument_id <= 95:
+        return 12  # Synth Lead/Pad
+    return 4  # Default: electric guitar icon
+
+
+def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
     """Map Songsterr instrument name to GP InstrumentSet type, Sound path, icon, and color."""
     name_lower = instrument_name.lower()
 
@@ -183,6 +210,8 @@ def get_instrument_type(instrument_name: str) -> dict:
     BLUE = "117 201 227"
     PURPLE = "183 147 210"
 
+    icon = _icon_from_midi_program(instrument_id)
+
     # Drums
     if "drum" in name_lower or "percussion" in name_lower:
         return {"set_type": "drumKit", "sound_path": "Drums/Drums/Drumkit",
@@ -190,60 +219,60 @@ def get_instrument_type(instrument_name: str) -> dict:
     # Bass
     if "bass" in name_lower:
         return {"set_type": "electricBass", "sound_path": "Stringed/Basses/Clean Bass",
-                "icon": 5, "color": YELLOW}
+                "icon": icon, "color": YELLOW}
     # Synthesizer / voice leads
     if "synth" in name_lower or "voice" in name_lower:
         return {"set_type": "leadSynthesizer", "sound_path": "Orchestra/Synth/Lead",
-                "icon": 12, "color": PURPLE}
+                "icon": icon, "color": PURPLE}
     # Guitar variants
     if "distortion" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Distortion Guitar",
-                "icon": 24, "color": RED}
+                "icon": icon, "color": RED}
     if "overdrive" in name_lower or "overdriven" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Overdrive Guitar",
-                "icon": 24, "color": RED}
+                "icon": icon, "color": RED}
     if "clean" in name_lower and "guitar" in name_lower:
-        return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Clean Guitar",
-                "icon": 24, "color": RED}
+        return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/12 Strings Electric Guitar",
+                "icon": icon, "color": RED}
     if "acoustic" in name_lower and "guitar" in name_lower:
         return {"set_type": "steelGuitar", "sound_path": "Stringed/Acoustic Guitars/Steel Guitar",
-                "icon": 27, "color": RED}
+                "icon": icon, "color": RED}
     if "guitar" in name_lower:
         return {"set_type": "electricGuitar", "sound_path": "Stringed/Electric Guitars/Overdrive Guitar",
-                "icon": 24, "color": RED}
+                "icon": icon, "color": RED}
     # Piano/keys (electric piano before generic piano)
     if "electric piano" in name_lower:
         return {"set_type": "electricPiano", "sound_path": "Orchestra/Keyboard/Electric Piano",
-                "icon": 38, "color": PURPLE}
+                "icon": icon, "color": PURPLE}
     if "piano" in name_lower or "keyboard" in name_lower or "organ" in name_lower:
         return {"set_type": "piano", "sound_path": "Keys/Pianos/Grand Piano",
-                "icon": 38, "color": PURPLE}
+                "icon": icon, "color": PURPLE}
     # Strings
-    strings = {"violin": ("violin", 1), "viola": ("viola", 2),
-               "cello": ("cello", 3), "contrabass": ("contrabass", 4)}
-    for key, (stype, icon) in strings.items():
+    strings = {"violin": ("violin", "Violin"), "viola": ("viola", "Viola"),
+               "cello": ("cello", "Cello"), "contrabass": ("contrabass", "Contrabass")}
+    for key, (stype, gp_name) in strings.items():
         if key in name_lower:
-            return {"set_type": stype, "sound_path": f"Orchestra/Strings/{instrument_name}",
+            return {"set_type": stype, "sound_path": f"Orchestra/Strings/{gp_name}",
                     "icon": icon, "color": GREEN}
     # Brass
-    brass = {"trumpet": ("trumpet", 11), "trombone": ("trombone", 13),
-             "tuba": ("tuba", 15), "french horn": ("frenchHorn", 12)}
-    for key, (stype, icon) in brass.items():
+    brass = {"trumpet": ("trumpet", "Trumpet"), "trombone": ("trombone", "Trombone"),
+             "tuba": ("tuba", "Tuba"), "french horn": ("frenchHorn", "French Horn")}
+    for key, (stype, gp_name) in brass.items():
         if key in name_lower:
-            return {"set_type": stype, "sound_path": f"Orchestra/Winds/{instrument_name}",
+            return {"set_type": stype, "sound_path": f"Orchestra/Winds/{gp_name}",
                     "icon": icon, "color": GREEN}
     # Woodwinds (match "sax" in addition to "saxophone")
-    woodwinds = {"flute": ("flute", 16), "oboe": ("oboe", 14),
-                 "clarinet": ("clarinet", 17), "bassoon": ("bassoon", 15),
-                 "sax": ("saxophone", 19)}
-    for key, (stype, icon) in woodwinds.items():
+    woodwinds = {"flute": ("flute", "Flute"), "oboe": ("oboe", "Oboe"),
+                 "clarinet": ("clarinet", "Clarinet"), "bassoon": ("bassoon", "Bassoon"),
+                 "sax": ("saxophone", "Saxophone")}
+    for key, (stype, gp_name) in woodwinds.items():
         if key in name_lower:
-            return {"set_type": stype, "sound_path": f"Orchestra/Winds/{instrument_name}",
+            return {"set_type": stype, "sound_path": f"Orchestra/Winds/{gp_name}",
                     "icon": icon, "color": GREEN}
     # Default to electric guitar
     return {"set_type": "electricGuitar",
             "sound_path": "Stringed/Electric Guitars/Overdrive Guitar",
-            "icon": 24, "color": RED}
+            "icon": icon, "color": RED}
 
 
 # ---------------------------------------------------------------------------
@@ -667,7 +696,7 @@ class GPIFBuilder:
         is_drums = tuning_raw is None or "drum" in instrument_name.lower()
         tuning = list(reversed(tuning_raw)) if tuning_raw else [0] * num_strings
         tuning_str = " ".join(str(t) for t in tuning)
-        inst_type = get_instrument_type(instrument_name)
+        inst_type = get_instrument_type(instrument_name, instrument_id)
 
         # Lyrics
         lyrics_lines = []
@@ -735,7 +764,7 @@ class GPIFBuilder:
         parts.append(f'<IconId>{inst_type["icon"]}</IconId>')
         parts.append(instrument_set_xml)
         parts.append('<Transpose>\n<Chromatic>0</Chromatic>\n<Octave>-1</Octave>\n</Transpose>')
-        parts.append('<RSE>\n<ChannelStrip version="E56">\n<Parameters>0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0 0.5 0.5 0.795 0.5 0.5 0.5</Parameters>\n</ChannelStrip>\n</RSE>')
+        parts.append('<RSE>\n<ChannelStrip version="E56">\n<Parameters>0.6 0.68 1 0.62 0.75 0.5 0.66 0.18 0.6 0 0.5 0.5 0.80 0.5 0.5 0.5</Parameters>\n</ChannelStrip>\n</RSE>')
         parts.append('<ForcedSound>-1</ForcedSound>')
         if is_drums:
             parts.append(f'<Sounds>\n<Sound>\n<Name><![CDATA[Drumkit]]></Name>\n<Label><![CDATA[Drumkit]]></Label>\n<Path>Drums/Drums/Drumkit</Path>\n<Role>Factory</Role>\n<MIDI>\n<LSB>0</LSB>\n<MSB>0</MSB>\n<Program>0</Program>\n</MIDI>\n<RSE>\n<SoundbankPatch>Drumkit-Master</SoundbankPatch>\n<ElementsSettings/>\n<Pickups>\n<OverloudPosition>0</OverloudPosition>\n<Volumes>1 1</Volumes>\n<Tones>0.5 0.5</Tones>\n</Pickups>\n</RSE>\n</Sound>\n</Sounds>')

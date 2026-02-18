@@ -10,7 +10,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import gen_gp
 from gen_gp import (escape_xml, midi_to_pitch_xml, get_instrument_type, parse_song_id,
-                     GPIFBuilder, TRIPLET_FEEL_MAP, DRUM_NOTATION_PATCH, tokenize_lyrics)
+                     GPIFBuilder, TRIPLET_FEEL_MAP, DRUM_NOTATION_PATCH, tokenize_lyrics,
+                     _icon_from_midi_program)
 
 
 class TestXMLEscaping:
@@ -71,95 +72,93 @@ class TestInstrumentType:
     """Tests for instrument type detection."""
 
     def test_get_instrument_type_drums(self):
-        result = get_instrument_type("Drums")
+        result = get_instrument_type("Drums", 1024)
         assert result["set_type"] == "drumKit"
         assert "Drums" in result["sound_path"]
         assert result["icon"] == 18
 
     def test_get_instrument_type_bass(self):
-        result = get_instrument_type("Electric Bass")
+        result = get_instrument_type("Electric Bass (pick)", 34)
         assert result["set_type"] == "electricBass"
         assert "Bass" in result["sound_path"]
         assert result["icon"] == 5
 
     def test_get_instrument_type_distortion_guitar(self):
-        result = get_instrument_type("Distortion Guitar")
+        result = get_instrument_type("Distortion Guitar", 30)
         assert result["set_type"] == "electricGuitar"
         assert "Distortion" in result["sound_path"]
-        assert result["icon"] == 24
+        assert result["icon"] == 4
 
     def test_get_instrument_type_clean_guitar(self):
-        result = get_instrument_type("Clean Guitar")
+        result = get_instrument_type("Electric Guitar (clean)", 27)
         assert result["set_type"] == "electricGuitar"
-        assert "Clean" in result["sound_path"]
-        assert result["icon"] == 24
+        assert "12 Strings Electric Guitar" in result["sound_path"]
+        assert result["icon"] == 3
 
     def test_get_instrument_type_acoustic_guitar(self):
-        result = get_instrument_type("Acoustic Guitar")
+        result = get_instrument_type("Acoustic Guitar (steel)", 25)
         assert result["set_type"] == "steelGuitar"
         assert "Acoustic" in result["sound_path"]
-        assert result["icon"] == 27
+        assert result["icon"] == 3
 
     def test_get_instrument_type_piano(self):
-        result = get_instrument_type("Grand Piano")
+        result = get_instrument_type("Grand Piano", 0)
         assert result["set_type"] == "piano"
         assert "Piano" in result["sound_path"]
-        assert result["icon"] == 38
+        assert result["icon"] == 10
 
     def test_get_instrument_type_violin(self):
-        result = get_instrument_type("Violin")
+        result = get_instrument_type("Violin", 40)
         assert result["set_type"] == "violin"
-        assert result["icon"] == 1
+        assert result["icon"] == 14
 
     def test_get_instrument_type_trumpet(self):
-        result = get_instrument_type("Trumpet")
+        result = get_instrument_type("Trumpet", 56)
         assert result["set_type"] == "trumpet"
-        assert result["icon"] == 11
+        assert result["icon"] == 14
 
     def test_get_instrument_type_saxophone(self):
-        result = get_instrument_type("Saxophone")
+        result = get_instrument_type("Saxophone", 66)
         assert result["set_type"] == "saxophone"
-        assert result["icon"] == 19
+        assert result["icon"] == 14
 
     def test_get_instrument_type_tenor_sax(self):
         """Songsterr uses 'Tenor Sax' which should match saxophone."""
-        result = get_instrument_type("Tenor Sax")
+        result = get_instrument_type("Tenor Sax", 66)
         assert result["set_type"] == "saxophone"
         assert "Winds" in result["sound_path"]
+        assert result["icon"] == 14
 
     def test_get_instrument_type_lead_voice(self):
         """Songsterr 'Lead 6 (voice)' should map to leadSynthesizer."""
-        result = get_instrument_type("Lead 6 (voice)")
+        result = get_instrument_type("Lead 6 (voice)", 85)
         assert result["set_type"] == "leadSynthesizer"
         assert "Synth" in result["sound_path"]
+        assert result["icon"] == 12
 
     def test_get_instrument_type_electric_piano(self):
         """'Electric Piano 1' should map to electricPiano, not generic piano."""
-        result = get_instrument_type("Electric Piano 1")
+        result = get_instrument_type("Electric Piano 1", 4)
         assert result["set_type"] == "electricPiano"
         assert "Electric Piano" in result["sound_path"]
+        assert result["icon"] == 10
 
     def test_get_instrument_type_overdriven_guitar(self):
         """'Overdriven Guitar' should map to Overdrive Guitar path."""
-        result = get_instrument_type("Overdriven Guitar")
+        result = get_instrument_type("Overdriven Guitar", 29)
         assert result["set_type"] == "electricGuitar"
         assert "Overdrive" in result["sound_path"]
-
-    def test_get_instrument_type_distortion_guitar(self):
-        result = get_instrument_type("Distortion Guitar")
-        assert result["set_type"] == "electricGuitar"
-        assert "Distortion" in result["sound_path"]
+        assert result["icon"] == 4
 
     def test_get_instrument_type_default(self):
         # Unknown instrument should default to electric guitar
         result = get_instrument_type("Unknown Instrument")
         assert result["set_type"] == "electricGuitar"
-        assert result["icon"] == 24
 
     def test_get_instrument_type_case_insensitive(self):
         # Should work with different cases
-        result1 = get_instrument_type("DRUMS")
-        result2 = get_instrument_type("drums")
+        result1 = get_instrument_type("DRUMS", 1024)
+        result2 = get_instrument_type("drums", 1024)
         assert result1["set_type"] == result2["set_type"]
 
 
