@@ -1359,6 +1359,110 @@ class TestLetRing:
         assert '2' not in lr_frets
 
 
+class TestChordNames:
+    """Tests for chord name handling (Songsterr chord -> GP DiagramCollection + Beat Chord)."""
+
+    def _build_gpif(self, tracks, meta=None):
+        builder = GPIFBuilder(tracks, meta or {"artist": "Test", "title": "Test"})
+        return builder.build()
+
+    def _make_track(self, beats):
+        return {
+            "name": "Guitar", "instrument": "Distortion Guitar",
+            "strings": 6, "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": [{"voices": [{"beats": beats}]}],
+        }
+
+    def test_chord_name_in_diagram_collection(self):
+        """Beats with chord data should populate the track's DiagramCollection."""
+        track = self._make_track([
+            {"type": 4, "chord": {"text": "Am"}, "notes": [{"fret": 0, "string": 0}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+
+        root = ET.fromstring(gpif_xml)
+        diag_prop = root.find('.//Track//Property[@name="DiagramCollection"]')
+        items = diag_prop.find('Items')
+        assert len(items) == 1
+        assert items[0].get('name') == 'Am'
+
+    def test_chord_ref_on_beat(self):
+        """Beats with chord data should have <Chord>id</Chord> referencing DiagramCollection."""
+        track = self._make_track([
+            {"type": 4, "chord": {"text": "E5"}, "notes": [{"fret": 0, "string": 0}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+
+        root = ET.fromstring(gpif_xml)
+        chord_beats = [b for b in root.find('Beats') if b.find('Chord') is not None]
+        assert len(chord_beats) >= 1
+        assert chord_beats[0].find('Chord').text == '0'
+
+    def test_multiple_chords(self):
+        """Multiple distinct chord names should create separate DiagramCollection items."""
+        track = self._make_track([
+            {"type": 4, "chord": {"text": "Ab"}, "notes": [{"fret": 4, "string": 0}]},
+            {"type": 4, "chord": {"text": "E5"}, "notes": [{"fret": 0, "string": 0}]},
+            {"type": 4, "chord": {"text": "Ab"}, "notes": [{"fret": 4, "string": 0}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+
+        root = ET.fromstring(gpif_xml)
+        diag_prop = root.find('.//Track//Property[@name="DiagramCollection"]')
+        items = diag_prop.find('Items')
+        names = [item.get('name') for item in items]
+        assert 'Ab' in names
+        assert 'E5' in names
+        assert len(items) == 2  # Ab appears twice but only one item
+
+    def test_no_chord_without_data(self):
+        """Beats without chord data should not have <Chord> element."""
+        track = self._make_track([
+            {"type": 4, "notes": [{"fret": 0, "string": 0}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+
+        root = ET.fromstring(gpif_xml)
+        chord_beats = [b for b in root.find('Beats') if b.find('Chord') is not None]
+        assert len(chord_beats) == 0
+
+    def test_chord_show_name_not_diagram(self):
+        """Chord diagram items should have ShowName=true and ShowDiagram=false."""
+        track = self._make_track([
+            {"type": 4, "chord": {"text": "G"}, "notes": [{"fret": 3, "string": 0}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+
+        root = ET.fromstring(gpif_xml)
+        diag = root.find('.//Track//Property[@name="DiagramCollection"]//Diagram')
+        props = {p.get('name'): p.get('value') for p in diag.findall('Property')}
+        assert props['ShowName'] == 'true'
+        assert props['ShowDiagram'] == 'false'
+
+    def test_chord_ref_uses_cdata(self):
+        """Beat chord refs must use CDATA wrapper for GP compatibility."""
+        track = self._make_track([
+            {"type": 4, "chord": {"text": "Am"}, "notes": [{"fret": 0, "string": 0}]},
+        ])
+        gpif_xml = self._build_gpif([track])
+
+        assert "<Chord><![CDATA[0]]></Chord>" in gpif_xml
+
+    def test_chord_dedup_separation(self):
+        """Beats with different chords on same notes/rhythm must not be deduplicated."""
+        track = self._make_track([
+            {"type": 4, "chord": {"text": "Am"}, "notes": [{"fret": 0, "string": 0}]},
+            {"type": 4, "chord": {"text": "Em"}, "notes": [{"fret": 0, "string": 0}]},
+        ])
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        root = ET.fromstring(gpif_xml)
+        chord_beats = [b for b in root.find('Beats') if b.find('Chord') is not None]
+        chord_vals = {b.find('Chord').text for b in chord_beats}
+        assert len(chord_vals) == 2  # Two different chord refs
+
+
 class TestLyricsSkipSentinels:
     """Tests for the space-based skip sentinel mechanism in lyrics positioning."""
 

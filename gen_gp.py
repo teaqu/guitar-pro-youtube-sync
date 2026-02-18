@@ -448,6 +448,10 @@ class GPIFBuilder:
         self._current_track_beats: list[tuple[int, bool]] = []
         self._tracking_lyrics_voice: bool = False
 
+        # Per-track chord collection: track_idx -> {chord_name: item_id}
+        self._track_chords: list[dict[str, int]] = []
+        self._current_track_chords: dict[str, int] = {}
+
     def _alloc(self, kind: str) -> int:
         val = self._counters[kind]
         self._counters[kind] += 1
@@ -632,6 +636,14 @@ class GPIFBuilder:
         if grace:
             beat_obj["grace"] = "OnBeat" if grace == "onBeat" else "BeforeBeat"
 
+        chord_data = beat_data.get("chord")
+        if chord_data:
+            chord_name = chord_data.get("text", "")
+            if chord_name:
+                if chord_name not in self._current_track_chords:
+                    self._current_track_chords[chord_name] = len(self._current_track_chords)
+                beat_obj["chord_id"] = self._current_track_chords[chord_name]
+
         if "tremoloBar" in beat_data:
             tb = beat_data["tremoloBar"]
             points = tb.get("points", [])
@@ -704,8 +716,10 @@ class GPIFBuilder:
         self._current_tuning = list(reversed(tuning)) if tuning else [0] * self._current_num_strings
         self._last_note_on_string = {}
         self._current_track_beats = []
+        self._current_track_chords = {}
         bar_ids = [self._process_bar(m) for m in track_data.get("measures", [])]
         self._track_beat_info.append(self._current_track_beats)
+        self._track_chords.append(self._current_track_chords)
         return bar_ids
 
     # --- Deduplication ---
@@ -744,6 +758,7 @@ class GPIFBuilder:
             obj["rhythm_id"], obj["dynamic"], canonical_notes,
             obj.get("hairpin"), obj.get("free_text"),
             obj.get("whammy"), lyrics_sig, obj.get("grace"),
+            obj.get("chord_id"),
         )
 
     def _dedup_beats(self):
@@ -778,6 +793,9 @@ class GPIFBuilder:
             ll = '\n'.join(f'    <Line><![CDATA[{lt}]]></Line>'
                           for lt in obj["lyrics"])
             lines.append(f'  <Lyrics>\n{ll}\n  </Lyrics>')
+
+        if "chord_id" in obj:
+            lines.append(f'  <Chord><![CDATA[{obj["chord_id"]}]]></Chord>')
 
         if canonical_notes:
             lines.append(f'  <Notes>{" ".join(str(n) for n in canonical_notes)}</Notes>')
@@ -894,7 +912,8 @@ class GPIFBuilder:
         parts.append('<PlaybackState>Default</PlaybackState>')
         parts.append('<AudioEngineState>RSE</AudioEngineState>')
         parts.append(f'<Lyrics dispatched="true">\n{chr(10).join(lyrics_lines)}\n</Lyrics>')
-        parts.append(self._build_staves_xml(is_drums, frets, num_strings, tuning_str))
+        track_chords = self._track_chords[track_idx] if track_idx < len(self._track_chords) else {}
+        parts.append(self._build_staves_xml(is_drums, frets, num_strings, tuning_str, track_chords))
 
         # Build <Automations> block (Value must be CDATA-wrapped for GP8)
         if is_drums:
@@ -953,9 +972,32 @@ class GPIFBuilder:
             f'</RSE>\n'
             f'</Sound>')
 
-    def _build_staves_xml(self, is_drums: bool, frets: int, num_strings: int, tuning_str: str) -> str:
+    @staticmethod
+    def _build_diagram_items(chords: dict[str, int], num_strings: int) -> str:
+        """Build DiagramCollection Items XML from chord name -> ID mapping."""
+        if not chords:
+            return "<Items/>"
+        frets = "\n".join(f'<Fret string="{s}" fret="0"/>' for s in range(1, num_strings))
+        items = []
+        for name, cid in sorted(chords.items(), key=lambda x: x[1]):
+            items.append(
+                f'<Item id="{cid}" name="{escape_xml(name)}">'
+                f'<Diagram stringCount="{num_strings}" fretCount="5" baseFret="0"'
+                f' barsStates="{"1 " * (num_strings - 2)}1">\n{frets}\n'
+                f'<Property name="ShowName" type="bool" value="true"/>\n'
+                f'<Property name="ShowDiagram" type="bool" value="false"/>\n'
+                f'<Property name="ShowFingering" type="bool" value="true"/>\n'
+                f'</Diagram>\n'
+                f'<Chord><KeyNote step="C" accidental="Natural"/>'
+                f'<BassNote step="C" accidental="Natural"/></Chord>\n'
+                f'</Item>')
+        return f'<Items>\n{chr(10).join(items)}\n</Items>'
+
+    def _build_staves_xml(self, is_drums: bool, frets: int, num_strings: int,
+                          tuning_str: str, chords: dict[str, int] | None = None) -> str:
+        diagram_items = self._build_diagram_items(chords or {}, num_strings)
         if is_drums:
-            return '''<Staves>
+            return f'''<Staves>
 <Staff>
 <Properties>
 <Property name="CapoFret"><Fret>0</Fret></Property>
@@ -971,7 +1013,7 @@ class GPIFBuilder:
 </Property>
 <Property name="ChordCollection"><Items/></Property>
 <Property name="ChordWorkingSet"><Items/></Property>
-<Property name="DiagramCollection"><Items/></Property>
+<Property name="DiagramCollection">{diagram_items}</Property>
 <Property name="DiagramWorkingSet"><Items/></Property>
 <Property name="TuningFlat"><Enable/></Property>
 <Name><![CDATA[]]></Name>
@@ -993,7 +1035,7 @@ class GPIFBuilder:
 </Property>
 <Property name="ChordCollection"><Items/></Property>
 <Property name="ChordWorkingSet"><Items/></Property>
-<Property name="DiagramCollection"><Items/></Property>
+<Property name="DiagramCollection">{diagram_items}</Property>
 <Property name="DiagramWorkingSet"><Items/></Property>
 <Name><![CDATA[Standard]]></Name>
 </Properties>
