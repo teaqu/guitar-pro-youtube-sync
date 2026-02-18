@@ -148,6 +148,30 @@ def midi_to_pitch_xml(midi_note: int) -> str:
     return f"<Pitch><Step>{step}</Step>{acc_xml}<Octave>{octave}</Octave></Pitch>"
 
 
+def tokenize_lyrics(text: str) -> list[str]:
+    """Tokenize lyrics text into syllables for beat-level assignment.
+
+    Words are separated by whitespace, and hyphens within words split syllables.
+    The hyphen is kept with the preceding syllable (e.g., "Mo-ney" -> ["Mo-", "ney"]).
+    """
+    tokens = []
+    for word in re.split(r'[\s]+', text):
+        if not word:
+            continue
+        parts = re.split(r'(-)', word)
+        current = ''
+        for p in parts:
+            if p == '-':
+                current += '-'
+                tokens.append(current)
+                current = ''
+            else:
+                current += p
+        if current:
+            tokens.append(current)
+    return tokens
+
+
 def get_instrument_type(instrument_name: str) -> dict:
     """Map Songsterr instrument name to GP InstrumentSet type, Sound path, icon, and color."""
     name_lower = instrument_name.lower()
@@ -289,6 +313,12 @@ class GPIFBuilder:
         self._current_num_strings: int = 6
         self._current_is_drums: bool = False
         self._last_note_on_string: dict[int, dict] = {}
+
+        # Per-track beat tracking for lyrics assignment (voice 0 only)
+        # _track_beat_info[track_idx] = [(beat_id, has_notes), ...] in order
+        self._track_beat_info: list[list[tuple[int, bool]]] = []
+        self._current_track_beats: list[tuple[int, bool]] = []
+        self._tracking_lyrics_voice: bool = False
 
     def _alloc(self, kind: str) -> int:
         val = self._counters[kind]
@@ -490,6 +520,8 @@ class GPIFBuilder:
                 beat_obj["whammy"] = (o_val, m_val, d_val, o_off, m_off, d_off)
 
         self._beat_objs.append(beat_obj)
+        if self._tracking_lyrics_voice:
+            self._current_track_beats.append((bid, not is_rest))
         return bid
 
     # --- Voice / Bar ---
@@ -514,7 +546,11 @@ class GPIFBuilder:
 
     def _process_bar(self, measure_data: dict) -> int:
         bid = self._alloc("bar")
-        voice_ids = [self._process_voice(v) for v in measure_data.get("voices", [])]
+        voice_ids = []
+        for vi, v in enumerate(measure_data.get("voices", [])):
+            self._tracking_lyrics_voice = (vi == 0)
+            voice_ids.append(self._process_voice(v))
+        self._tracking_lyrics_voice = False
         while len(voice_ids) < 4:
             voice_ids.append(-1)
         clef = "Neutral" if self._current_is_drums else "G2"
@@ -530,7 +566,10 @@ class GPIFBuilder:
         self._current_is_drums = tuning is None or "drum" in track_data.get("instrument", "").lower()
         self._current_tuning = list(reversed(tuning)) if tuning else [0] * self._current_num_strings
         self._last_note_on_string = {}
-        return [self._process_bar(m) for m in track_data.get("measures", [])]
+        self._current_track_beats = []
+        bar_ids = [self._process_bar(m) for m in track_data.get("measures", [])]
+        self._track_beat_info.append(self._current_track_beats)
+        return bar_ids
 
     # --- Deduplication ---
 
@@ -562,10 +601,11 @@ class GPIFBuilder:
     def _beat_signature(self, obj: dict) -> tuple:
         """Compute a hashable signature for a beat object."""
         canonical_notes = tuple(self._note_id_map.get(n, n) for n in obj["note_ids"])
+        lyrics_sig = tuple(obj["lyrics"]) if "lyrics" in obj else None
         return (
             obj["rhythm_id"], obj["dynamic"], canonical_notes,
             obj.get("hairpin"), obj.get("free_text"),
-            obj.get("whammy"),
+            obj.get("whammy"), lyrics_sig,
         )
 
     def _dedup_beats(self):
@@ -592,6 +632,11 @@ class GPIFBuilder:
 
         if "hairpin" in obj:
             lines.append(f'  <Hairpin>{obj["hairpin"]}</Hairpin>')
+
+        if "lyrics" in obj:
+            ll = '\n'.join(f'    <Line><![CDATA[{lt}]]></Line>'
+                          for lt in obj["lyrics"])
+            lines.append(f'  <Lyrics>\n{ll}\n  </Lyrics>')
 
         if canonical_notes:
             lines.append(f'  <Notes>{" ".join(str(n) for n in canonical_notes)}</Notes>')
@@ -754,6 +799,88 @@ class GPIFBuilder:
 </Staff>
 </Staves>'''
 
+    # --- Lyrics assignment ---
+
+    def _assign_lyrics(self):
+        """Assign beat-level lyrics to tracks that have newLyrics data.
+
+        Walks through each track's beats starting from the lyrics offset measure,
+        and assigns lyric syllables to beats that have actual notes (non-rest).
+        GP supports 5 lyric lines per track; each newLyrics entry maps to one line.
+        """
+        # Build a fast lookup: beat_id -> beat_obj
+        beat_by_id = {obj["id"]: obj for obj in self._beat_objs}
+
+        for track_idx, track_data in enumerate(self.tracks):
+            new_lyrics = track_data.get("newLyrics", [])
+            if not new_lyrics or not any(nl.get("text", "").strip() for nl in new_lyrics):
+                continue
+
+            # Tokenize each lyric line
+            num_lines = 5  # GP supports 5 lyric lines
+            line_tokens: list[list[str]] = []
+            line_offsets: list[int] = []
+            for li in range(num_lines):
+                if li < len(new_lyrics) and new_lyrics[li].get("text", "").strip():
+                    line_tokens.append(tokenize_lyrics(new_lyrics[li]["text"]))
+                    line_offsets.append(new_lyrics[li].get("offset", 0))
+                else:
+                    line_tokens.append([])
+                    line_offsets.append(0)
+
+            if not any(line_tokens):
+                continue
+
+            # Get beat info for this track
+            beat_info = self._track_beat_info[track_idx]
+
+            # Count beats per measure to compute measure boundaries
+            measures = track_data.get("measures", [])
+            measure_beat_ranges: list[tuple[int, int]] = []
+            beat_pos = 0
+            for m in measures:
+                voices = m.get("voices", [])
+                n_beats = len(voices[0].get("beats", [])) if voices else 1
+                measure_beat_ranges.append((beat_pos, beat_pos + n_beats))
+                beat_pos += n_beats
+
+            # For each lyric line, assign tokens to note-beats starting from offset
+            line_iterators: list[int] = [0] * num_lines  # current token index per line
+
+            # Walk beats from the earliest offset
+            min_offset = min(line_offsets[i] for i in range(num_lines) if line_tokens[i])
+            start_beat = measure_beat_ranges[min_offset][0] if min_offset < len(measure_beat_ranges) else 0
+
+            for beat_pos_idx in range(start_beat, len(beat_info)):
+                bid, has_notes = beat_info[beat_pos_idx]
+                if not has_notes:
+                    continue
+
+                # Determine which measure this beat belongs to
+                current_measure = 0
+                for mi, (s, e) in enumerate(measure_beat_ranges):
+                    if s <= beat_pos_idx < e:
+                        current_measure = mi
+                        break
+
+                # Check each lyric line
+                lyrics_for_beat = [''] * num_lines
+                has_any = False
+                for li in range(num_lines):
+                    if not line_tokens[li]:
+                        continue
+                    if current_measure < line_offsets[li]:
+                        continue
+                    if line_iterators[li] < len(line_tokens[li]):
+                        lyrics_for_beat[li] = line_tokens[li][line_iterators[li]]
+                        line_iterators[li] += 1
+                        has_any = True
+
+                if has_any:
+                    beat_obj = beat_by_id.get(bid)
+                    if beat_obj:
+                        beat_obj["lyrics"] = lyrics_for_beat
+
     # --- Main build ---
 
     def build(self) -> str:
@@ -781,6 +908,9 @@ class GPIFBuilder:
         for track_data in self.tracks:
             bar_ids = self._process_track_measures(track_data)
             track_bar_ids.append(bar_ids)
+
+        # Assign beat-level lyrics to lyrics tracks
+        self._assign_lyrics()
 
         # Build MasterBars (one per measure, referencing one bar from each track)
         num_measures = max(len(ids) for ids in track_bar_ids) if track_bar_ids else 0

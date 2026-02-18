@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import gen_gp
 from gen_gp import (escape_xml, midi_to_pitch_xml, get_instrument_type, parse_song_id,
-                     GPIFBuilder, TRIPLET_FEEL_MAP, DRUM_NOTATION_PATCH)
+                     GPIFBuilder, TRIPLET_FEEL_MAP, DRUM_NOTATION_PATCH, tokenize_lyrics)
 
 
 class TestXMLEscaping:
@@ -692,6 +692,222 @@ class TestGPFileStructure:
         # Guitar track should have Overdrive path
         guitar_sound = guitar_track.find('Sounds/Sound')
         assert "Overdrive" in guitar_sound.find('Path').text
+
+
+class TestTokenizeLyrics:
+    """Tests for lyrics tokenization."""
+
+    def test_simple_words(self):
+        assert tokenize_lyrics("hello world") == ["hello", "world"]
+
+    def test_hyphenated_syllables(self):
+        """Hyphens split syllables; hyphen stays with preceding part."""
+        assert tokenize_lyrics("Mo-ney") == ["Mo-", "ney"]
+
+    def test_multiple_hyphens(self):
+        assert tokenize_lyrics("beau-ti-ful") == ["beau-", "ti-", "ful"]
+
+    def test_mixed_words_and_hyphens(self):
+        assert tokenize_lyrics("Mo-ney, get a-way.") == ["Mo-", "ney,", "get", "a-", "way."]
+
+    def test_empty_string(self):
+        assert tokenize_lyrics("") == []
+
+    def test_whitespace_only(self):
+        assert tokenize_lyrics("   ") == []
+
+    def test_multiple_spaces(self):
+        assert tokenize_lyrics("word1   word2") == ["word1", "word2"]
+
+    def test_no_hyphens(self):
+        assert tokenize_lyrics("just plain words here") == ["just", "plain", "words", "here"]
+
+    def test_trailing_hyphen(self):
+        """A word ending in hyphen produces a token with trailing hyphen."""
+        assert tokenize_lyrics("go-") == ["go-"]
+
+
+class TestBeatLevelLyrics:
+    """Tests for beat-level lyrics assignment."""
+
+    def _make_track_with_lyrics(self, num_measures, notes_per_measure, lyrics_text,
+                                 lyrics_offset=0):
+        """Helper to create a track with notes and lyrics."""
+        measures = []
+        for _ in range(num_measures):
+            beats = []
+            for j in range(notes_per_measure):
+                beats.append({
+                    "type": 4,
+                    "notes": [{"fret": j, "string": 0}]
+                })
+            measures.append({"voices": [{"beats": beats}]})
+
+        return {
+            "name": "Vocals",
+            "instrument": "Lead 6 (voice)",
+            "strings": 6,
+            "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": measures,
+            "newLyrics": [
+                {"text": lyrics_text, "offset": lyrics_offset},
+            ],
+        }
+
+    def test_lyrics_assigned_to_beats(self):
+        """Beats with notes should get lyrics tokens."""
+        track = self._make_track_with_lyrics(2, 2, "one two three four")
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert "<Lyrics>" in gpif_xml
+        assert "<![CDATA[one]]>" in gpif_xml
+        assert "<![CDATA[two]]>" in gpif_xml
+        assert "<![CDATA[three]]>" in gpif_xml
+        assert "<![CDATA[four]]>" in gpif_xml
+
+    def test_lyrics_offset(self):
+        """Lyrics with offset > 0 should skip early measures."""
+        track = self._make_track_with_lyrics(3, 1, "hello world", lyrics_offset=1)
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        # Should have lyrics on beats in measures 1 and 2, not measure 0
+        assert "<![CDATA[hello]]>" in gpif_xml
+        assert "<![CDATA[world]]>" in gpif_xml
+
+    def test_lyrics_skip_rest_beats(self):
+        """Rest beats should not consume lyrics tokens."""
+        measures = [
+            {"voices": [{"beats": [
+                {"type": 4, "notes": [{"fret": 0, "string": 0}]},
+                {"type": 4, "rest": True},
+                {"type": 4, "notes": [{"fret": 2, "string": 0}]},
+            ]}]},
+        ]
+        track = {
+            "name": "Vocals", "instrument": "Lead 6 (voice)",
+            "strings": 6, "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": measures,
+            "newLyrics": [{"text": "first second", "offset": 0}],
+        }
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert "<![CDATA[first]]>" in gpif_xml
+        assert "<![CDATA[second]]>" in gpif_xml
+
+    def test_lyrics_hyphenated_in_beats(self):
+        """Hyphenated syllables should appear as separate beat lyrics."""
+        track = self._make_track_with_lyrics(1, 3, "Mo-ney get")
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert "<![CDATA[Mo-]]>" in gpif_xml
+        assert "<![CDATA[ney]]>" in gpif_xml
+        assert "<![CDATA[get]]>" in gpif_xml
+
+    def test_no_lyrics_without_newlyrics(self):
+        """Tracks without newLyrics should not have beat-level lyrics."""
+        tracks = [{
+            "name": "Guitar", "instrument": "Steel Guitar",
+            "strings": 6, "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": [{"voices": [{"beats": [
+                {"type": 4, "notes": [{"fret": 0, "string": 0}]}
+            ]}]}],
+        }]
+        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        # Should have track-level Lyrics (dispatched) but no beat-level Lyrics
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(gpif_xml)
+        for beat in root.find('Beats'):
+            assert beat.find('Lyrics') is None
+
+    def test_lyrics_five_lines_padded(self):
+        """Beat lyrics should have 5 Line elements (GP standard), empty lines padded."""
+        track = self._make_track_with_lyrics(1, 1, "word")
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(gpif_xml)
+        for beat in root.find('Beats'):
+            lyrics_elem = beat.find('Lyrics')
+            if lyrics_elem is not None:
+                lines = lyrics_elem.findall('Line')
+                assert len(lines) == 5, f"Expected 5 lyric lines, got {len(lines)}"
+                assert lines[0].text == "word"
+                # Lines 1-4 should be empty
+                for line in lines[1:]:
+                    assert line.text is None or line.text == ""
+
+    def test_lyrics_beat_signature_includes_lyrics(self):
+        """Beats with different lyrics should not be deduplicated."""
+        measures = [
+            {"voices": [{"beats": [
+                {"type": 4, "notes": [{"fret": 0, "string": 0}]},
+                {"type": 4, "notes": [{"fret": 0, "string": 0}]},
+            ]}]},
+        ]
+        track = {
+            "name": "Vocals", "instrument": "Lead 6 (voice)",
+            "strings": 6, "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": measures,
+            "newLyrics": [{"text": "hello world", "offset": 0}],
+        }
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        # Both lyrics should appear even though the beats have same notes
+        assert "<![CDATA[hello]]>" in gpif_xml
+        assert "<![CDATA[world]]>" in gpif_xml
+
+    def test_track_level_lyrics_dispatched(self):
+        """Track-level lyrics should have dispatched='true' attribute."""
+        track = self._make_track_with_lyrics(1, 1, "word")
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        assert 'dispatched="true"' in gpif_xml
+
+    def test_voice0_only_for_lyrics(self):
+        """Only voice 0 beats should receive lyrics, not beats from other voices."""
+        measures = [
+            {"voices": [
+                {"beats": [
+                    {"type": 4, "notes": [{"fret": 0, "string": 0}]},
+                    {"type": 4, "notes": [{"fret": 1, "string": 0}]},
+                ]},
+                {"beats": [
+                    {"type": 4, "notes": [{"fret": 5, "string": 1}]},
+                    {"type": 4, "notes": [{"fret": 6, "string": 1}]},
+                ]},
+            ]},
+        ]
+        track = {
+            "name": "Vocals", "instrument": "Lead 6 (voice)",
+            "strings": 6, "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": measures,
+            "newLyrics": [{"text": "only-one", "offset": 0}],
+        }
+        builder = GPIFBuilder([track], {"artist": "Test", "title": "Test"})
+        gpif_xml = builder.build()
+
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(gpif_xml)
+        lyrics_beats = [b for b in root.find('Beats') if b.find('Lyrics') is not None]
+        # Should have lyrics on 2 beats (from "only-" and "one")
+        # Voice 1 beats should NOT consume lyrics tokens
+        lyrics_texts = []
+        for b in lyrics_beats:
+            line = b.find('Lyrics/Line')
+            if line is not None and line.text:
+                lyrics_texts.append(line.text)
+        assert "only-" in lyrics_texts
+        assert "one" in lyrics_texts
+        assert len(lyrics_texts) == 2
 
 
 if __name__ == "__main__":
