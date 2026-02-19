@@ -18,7 +18,7 @@ Pre-built executables are available:
 
 Download and extract, then run and follow the prompts. 
 
-> **macOS:** You may see "Apple could not verify this app." 
+> **macOS:** You may see "Apple could not verify this app."  
 >Attempt to open the app normally (double-click) to trigger the "cannot be opened" alert, and dismiss the dialog.  
 >Open System Settings.  
 >Go to Privacy & Security.  
