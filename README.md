@@ -26,7 +26,7 @@ Download and extract, then run and follow the prompts.
 >5. Click the "Open Anyway" button displayed for the recently blocked application.  
 >6. Enter your administrator password to confirm.  
 >
-> **Windows:** Windows Defender or SmartScreen may flag the download. This is a common false positive with PyInstaller-built executables. Click **More info** → **Run anyway**.
+> **Windows:** Windows Defender or SmartScreen may flag the download. Click **More info** → **Run anyway**.
 
 ## What It Does
 
