@@ -19,12 +19,12 @@ Pre-built executables are available:
 Download and extract, then run and follow the prompts. 
 
 > **macOS:** You may see "Apple could not verify this app."  
->Attempt to open the app normally (double-click) to trigger the "cannot be opened" alert, and dismiss the dialog.  
->Open System Settings.  
->Go to Privacy & Security.  
->Scroll down to the Security section.  
->Click the "Open Anyway" button displayed for the recently blocked application.
->Enter your administrator password to confirm.  
+>1. Attempt to open the app normally (double-click) to trigger the "cannot be opened" alert, and dismiss the dialog.  
+>2. Open System Settings.  
+>3. Go to Privacy & Security.  
+>4. Scroll down to the Security section.  
+>5. Click the "Open Anyway" button displayed for the recently blocked application.  
+>6. Enter your administrator password to confirm.  
 >
 > **Windows:** Windows Defender or SmartScreen may flag the download. This is a common false positive with PyInstaller-built executables. Click **More info** → **Run anyway**.
 
