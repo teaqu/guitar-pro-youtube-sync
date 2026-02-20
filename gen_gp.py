@@ -335,7 +335,7 @@ def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
                 "icon": icon, "color": PURPLE,
                 "soundbank_patch": None, "effect_chain": _CHAIN_ORCHESTRAL}
     if "piano" in name_lower or "keyboard" in name_lower or "organ" in name_lower:
-        return {"set_type": "piano", "sound_path": "Keys/Pianos/Grand Piano",
+        return {"set_type": "acousticPiano", "sound_path": "Orchestra/Keyboard/Acoustic Piano",
                 "icon": icon, "color": PURPLE,
                 "soundbank_patch": None, "effect_chain": _CHAIN_ORCHESTRAL}
     # Strings – violin/viola/cello have instrument-specific EQ presets

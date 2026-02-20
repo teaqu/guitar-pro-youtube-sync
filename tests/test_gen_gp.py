@@ -113,7 +113,7 @@ class TestInstrumentType:
 
     def test_get_instrument_type_piano(self):
         result = get_instrument_type("Grand Piano", 0)
-        assert result["set_type"] == "piano"
+        assert result["set_type"] == "acousticPiano"
         assert "Piano" in result["sound_path"]
         assert result["icon"] == 10
         assert result["soundbank_patch"] is None
