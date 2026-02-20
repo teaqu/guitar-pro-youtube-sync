@@ -41,7 +41,10 @@ NOTE_NAMES = [
     ("F", "#"), ("G", ""), ("G", "#"), ("A", ""), ("A", "#"), ("B", ""),
 ]
 
-SLIDE_MAP = {"below": 16, "above": 8, "toNext": 1, "legato": 1}
+SLIDE_MAP = {
+    "below": 16, "above": 8, "toNext": 1, "legato": 2, "shift": 1,
+    "downwards": 4, "upwards": 8, "belowshift": 17,
+}
 
 # MIDI program number -> GP Sound path (matches Songsterr's GP export)
 # This is authoritative: the MIDI program determines the correct Sound path.
@@ -594,7 +597,7 @@ class GPIFBuilder:
             "bend": note_data.get("bend"), "slide": note_data.get("slide"),
             "ghost": note_data.get("ghost", False), "staccato": note_data.get("staccato", False),
             "accentuated": note_data.get("accentuated"),
-            "let_ring": let_ring,
+            "let_ring": let_ring, "vibrato": note_data.get("vibrato", False),
         }
 
         if obj["tie_destination"] and gp_string in self._last_note_on_string:
@@ -682,6 +685,9 @@ class GPIFBuilder:
         if obj.get("let_ring"):
             lines.append('  <LetRing/>')
 
+        if obj.get("vibrato"):
+            lines.append('  <Vibrato>Slight</Vibrato>')
+
         lines.append('</Note>')
         return '\n'.join(lines)
 
@@ -734,6 +740,10 @@ class GPIFBuilder:
                 if chord_name not in self._current_track_chords:
                     self._current_track_chords[chord_name] = len(self._current_track_chords)
                 beat_obj["chord_id"] = self._current_track_chords[chord_name]
+
+        pick_stroke = beat_data.get("pickStroke")
+        if pick_stroke:
+            beat_obj["pick_stroke"] = "Down" if pick_stroke == "down" else "Up"
 
         if "tremoloBar" in beat_data:
             tb = beat_data["tremoloBar"]
@@ -827,7 +837,7 @@ class GPIFBuilder:
             obj.get("hopo_origin", False), obj.get("hopo_destination", False),
             bend_sig, obj.get("slide"), obj.get("ghost", False),
             obj.get("staccato", False), obj.get("accentuated"),
-            obj.get("let_ring", False),
+            obj.get("let_ring", False), obj.get("vibrato", False),
         )
 
     def _dedup_notes(self):
@@ -871,6 +881,8 @@ class GPIFBuilder:
         lines.append('  <Properties>')
         lines.append('    <Property name="PrimaryPickupVolume"><Float>0.500000</Float></Property>')
         lines.append('    <Property name="PrimaryPickupTone"><Float>0.500000</Float></Property>')
+        if "pick_stroke" in obj:
+            lines.append(f'    <Property name="PickStroke"><Direction>{obj["pick_stroke"]}</Direction></Property>')
         lines.append('  </Properties>')
         lines.append(f'  <Dynamic>{obj["dynamic"]}</Dynamic>')
 

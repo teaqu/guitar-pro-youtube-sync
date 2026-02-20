@@ -398,6 +398,108 @@ class TestGPIFBuilder:
         assert "Drums" in gpif_xml
 
 
+class TestNoteAndBeatProperties:
+    """Tests for note articulations (vibrato, slide) and beat properties (pickStroke)."""
+
+    def _build_single_beat(self, beat_data, instrument="Acoustic Guitar (steel)",
+                           instrument_id=25, tuning=[64, 59, 55, 50, 45, 40]):
+        """Helper: build GPIF XML with a single beat and return it."""
+        tracks = [{
+            "name": "Guitar", "instrument": instrument,
+            "instrumentId": instrument_id, "strings": len(tuning),
+            "tuning": tuning,
+            "measures": [{"voices": [{"beats": [beat_data]}]}],
+        }]
+        return GPIFBuilder(tracks).build()
+
+    def test_pick_stroke_down(self):
+        xml = self._build_single_beat({
+            "type": 4, "pickStroke": "down",
+            "notes": [{"fret": 0, "string": 0}],
+        })
+        assert '<Direction>Down</Direction>' in xml
+        assert 'PickStroke' in xml
+
+    def test_pick_stroke_up(self):
+        xml = self._build_single_beat({
+            "type": 4, "pickStroke": "up",
+            "notes": [{"fret": 0, "string": 0}],
+        })
+        assert '<Direction>Up</Direction>' in xml
+
+    def test_no_pick_stroke_by_default(self):
+        xml = self._build_single_beat({
+            "type": 4, "notes": [{"fret": 0, "string": 0}],
+        })
+        assert 'PickStroke' not in xml
+
+    def test_vibrato(self):
+        xml = self._build_single_beat({
+            "type": 4, "notes": [{"fret": 5, "string": 0, "vibrato": True}],
+        })
+        assert '<Vibrato>Slight</Vibrato>' in xml
+
+    def test_no_vibrato_by_default(self):
+        xml = self._build_single_beat({
+            "type": 4, "notes": [{"fret": 5, "string": 0}],
+        })
+        assert 'Vibrato' not in xml
+
+    def test_slide_legato(self):
+        xml = self._build_single_beat({
+            "type": 4, "notes": [{"fret": 5, "string": 0, "slide": "legato"}],
+        })
+        assert '<Flags>2</Flags>' in xml
+
+    def test_slide_shift(self):
+        xml = self._build_single_beat({
+            "type": 4, "notes": [{"fret": 5, "string": 0, "slide": "shift"}],
+        })
+        assert '<Flags>1</Flags>' in xml
+
+    def test_slide_downwards(self):
+        xml = self._build_single_beat({
+            "type": 4, "notes": [{"fret": 5, "string": 0, "slide": "downwards"}],
+        })
+        assert '<Flags>4</Flags>' in xml
+
+    def test_slide_upwards(self):
+        xml = self._build_single_beat({
+            "type": 4, "notes": [{"fret": 5, "string": 0, "slide": "upwards"}],
+        })
+        assert '<Flags>8</Flags>' in xml
+
+    def test_slide_below(self):
+        xml = self._build_single_beat({
+            "type": 4, "notes": [{"fret": 5, "string": 0, "slide": "below"}],
+        })
+        assert '<Flags>16</Flags>' in xml
+
+    def test_slide_belowshift(self):
+        xml = self._build_single_beat({
+            "type": 4, "notes": [{"fret": 5, "string": 0, "slide": "belowshift"}],
+        })
+        assert '<Flags>17</Flags>' in xml
+
+    def test_vibrato_dedup_distinct(self):
+        """Notes with/without vibrato should not be deduplicated together."""
+        tracks = [{
+            "name": "Guitar", "instrument": "Acoustic Guitar (steel)",
+            "instrumentId": 25, "strings": 6,
+            "tuning": [64, 59, 55, 50, 45, 40],
+            "measures": [{"voices": [{"beats": [
+                {"type": 4, "notes": [{"fret": 5, "string": 0}]},
+                {"type": 4, "notes": [{"fret": 5, "string": 0, "vibrato": True}]},
+            ]}]}],
+        }]
+        builder = GPIFBuilder(tracks)
+        builder.build()
+        # Should have 2 distinct notes (not deduplicated)
+        note_count = sum(1 for obj in builder._note_objs
+                         if obj["fret"] == 5 and obj["gp_string"] == 5)
+        assert note_count == 2
+
+
 class TestRhythmMapping:
     """Tests for duration to rhythm name mapping."""
 
@@ -903,7 +1005,15 @@ class TestGPFileStructure:
                 "measures": [
                     {
                         "tripletFeel": "8th",
-                        "voices": [{"beats": [{"type": 4, "notes": [{"fret": 5, "string": 0}]}]}]
+                        "voices": [{"beats": [
+                            {"type": 4, "pickStroke": "down",
+                             "notes": [{"fret": 5, "string": 0, "vibrato": True}]},
+                            {"type": 4,
+                             "notes": [{"fret": 7, "string": 0, "slide": "legato"}]},
+                            {"type": 4, "pickStroke": "up",
+                             "notes": [{"fret": 9, "string": 0}]},
+                            {"type": 4, "notes": [{"fret": 5, "string": 0}]},
+                        ]}]
                     }
                 ]
             },
@@ -950,6 +1060,14 @@ class TestGPFileStructure:
         # Guitar track should have Overdrive path
         guitar_sound = guitar_track.find('Sounds/Sound')
         assert "Overdrive" in guitar_sound.find('Path').text
+
+        # PickStroke, Vibrato, and Slide should be present in XML
+        xml_str = ET.tostring(root, encoding='unicode')
+        assert 'PickStroke' in xml_str
+        assert '<Direction>Down</Direction>' in xml_str
+        assert '<Direction>Up</Direction>' in xml_str
+        assert '<Vibrato>Slight</Vibrato>' in xml_str
+        assert '<Flags>2</Flags>' in xml_str  # legato slide
 
 
 class TestTokenizeLyrics:
