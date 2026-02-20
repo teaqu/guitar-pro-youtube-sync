@@ -566,8 +566,8 @@ class TestDrumTrackFeatures:
         assert '<Effect id="M08_GraphicEQ10Band">' in gpif_xml
         assert '<Effect id="M05_StudioReverbPlatePercussive">' in gpif_xml
 
-    def test_non_drum_rse_sound(self):
-        """Non-drum tracks should include RSE SoundbankPatch, Pickups and EffectChain."""
+    def test_non_drum_sound_no_rse(self):
+        """Non-drum tracks should NOT include RSE blocks in Sound (matches Songsterr export)."""
         tracks = [{
             "name": "Guitar",
             "instrument": "Distortion Guitar",
@@ -584,12 +584,11 @@ class TestDrumTrackFeatures:
         builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
         gpif_xml = builder.build()
 
-        assert "<SoundbankPatch>Classic-Guitar</SoundbankPatch>" in gpif_xml
-        assert "<Tones>1 1</Tones>" in gpif_xml
-        assert '<Effect id="E03_OverdriveScreamer">' in gpif_xml
-        assert '<Effect id="A06_StackBritishStack">' in gpif_xml
-        assert '<Effect id="E30_EqGEq">' in gpif_xml
+        # Sound should have correct path from MIDI program, no RSE block
+        assert "<Path>Stringed/Electric Guitars/Distortion Guitar</Path>" in gpif_xml
         assert "<Role>User</Role>" in gpif_xml
+        # RSE SoundbankPatch should NOT be in the Sound block (only track-level RSE ChannelStrip remains)
+        assert "<SoundbankPatch>" not in gpif_xml
 
     def test_multi_sound_track(self):
         """Tracks with multiple sounds should have multiple Sound entries and Sound automations."""
@@ -619,17 +618,17 @@ class TestDrumTrackFeatures:
         builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
         gpif_xml = builder.build()
 
-        # Should have both sounds
-        assert "<SoundbankPatch>Pre-Bass</SoundbankPatch>" in gpif_xml
-        assert "<SoundbankPatch>Strat-Guitar</SoundbankPatch>" in gpif_xml
-        # Should have sound automations
+        # Should have both sounds with correct MIDI-based paths (no RSE blocks)
+        assert "<Path>Stringed/Basses/Clean Bass</Path>" in gpif_xml
+        assert "<Path>Stringed/Electric Guitars/Overdrive Guitar</Path>" in gpif_xml
+        # Should have sound automations with correct paths
         assert "<Bar>20</Bar>" in gpif_xml
         assert "<Bar>36</Bar>" in gpif_xml
         assert "Overdriven Guitar;User]]>" in gpif_xml
         assert "Electric Bass (pick);User]]>" in gpif_xml
 
-    def test_non_drum_sound_automation(self):
-        """Single-sound non-drum tracks should still get a default Sound automation."""
+    def test_single_sound_no_automation(self):
+        """Single-sound non-drum tracks should NOT have Sound automations (matches Songsterr export)."""
         tracks = [{
             "name": "Guitar",
             "instrument": "Distortion Guitar",
@@ -646,11 +645,11 @@ class TestDrumTrackFeatures:
         builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
         gpif_xml = builder.build()
 
-        assert "Distortion Guitar;User]]></Value>" in gpif_xml
-        assert "<Type>Sound</Type>" in gpif_xml
+        # Single-sound non-drum tracks should not have Sound automation
+        assert "Distortion Guitar;User]]></Value>" not in gpif_xml
 
-    def test_no_soundbank_patch_instrument(self):
-        """Instruments without a soundbank_patch should produce self-closing SoundbankPatch."""
+    def test_synth_sound_path(self):
+        """Synth instruments should use MIDI program to get correct Sound path."""
         tracks = [{
             "name": "Synth",
             "instrument": "Lead 6 (voice)",
@@ -667,9 +666,9 @@ class TestDrumTrackFeatures:
         builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
         gpif_xml = builder.build()
 
-        assert "<SoundbankPatch/>" in gpif_xml
-        assert "<Tones>1 1</Tones>" in gpif_xml
-        assert "<EffectChain>" in gpif_xml
+        # Should use MIDI program 85 -> Orchestra/Synth/Lead path, no RSE block
+        assert "<Path>Orchestra/Synth/Lead</Path>" in gpif_xml
+        assert "<SoundbankPatch>" not in gpif_xml
 
     def test_sound_automation_fractional_position(self):
         """Sound automations with non-zero position should convert ticks to fraction (pos/960)."""
@@ -730,32 +729,12 @@ class TestDrumTrackFeatures:
         builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
         gpif_xml = builder.build()
 
-        # Automation values must use CDATA or GP8 won't apply sound switches during playback
+        # Automation values must use CDATA with MIDI-based paths
         assert "<Value><![CDATA[Stringed/Electric Guitars/Clean Guitar;Electric Guitar (clean);User]]></Value>" in gpif_xml
         assert "<Value><![CDATA[Stringed/Electric Guitars/Distortion Guitar;Distortion Guitar;User]]></Value>" in gpif_xml
 
-    def test_single_sound_automation_value_cdata_wrapped(self):
-        """Single-sound tracks should also have CDATA-wrapped automation values."""
-        tracks = [{
-            "name": "Guitar",
-            "instrument": "Distortion Guitar",
-            "instrumentId": 30,
-            "strings": 6,
-            "tuning": [64, 59, 55, 50, 45, 40],
-            "measures": [
-                {
-                    "voices": [{"beats": [{"type": 4, "notes": [{"fret": 0, "string": 0}]}]}]
-                }
-            ]
-        }]
-
-        builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
-        gpif_xml = builder.build()
-
-        assert "<Value><![CDATA[Stringed/Electric Guitars/Distortion Guitar;Distortion Guitar;User]]></Value>" in gpif_xml
-
-    def test_bass_rse_sound(self):
-        """Bass tracks should get Pre-Bass patch and bass-specific EQ."""
+    def test_bass_sound_path(self):
+        """Bass tracks should use correct MIDI-based Sound path."""
         tracks = [{
             "name": "Bass",
             "instrument": "Electric Bass (pick)",
@@ -772,9 +751,8 @@ class TestDrumTrackFeatures:
         builder = GPIFBuilder(tracks, {"artist": "Test", "title": "Test"})
         gpif_xml = builder.build()
 
-        assert "<SoundbankPatch>Pre-Bass</SoundbankPatch>" in gpif_xml
-        assert '<Effect id="A10_StackClassic">' in gpif_xml
-        assert '<Effect id="E31_EqBEq">' in gpif_xml
+        assert "<Path>Stringed/Basses/Clean Bass</Path>" in gpif_xml
+        assert "<SoundbankPatch>" not in gpif_xml
 
     def test_non_drum_no_notation_patch(self):
         """Non-drum tracks should not include NotationPatch."""
@@ -919,6 +897,7 @@ class TestGPFileStructure:
             {
                 "name": "Guitar",
                 "instrument": "Overdriven Guitar",
+                "instrumentId": 29,
                 "strings": 6,
                 "tuning": [64, 59, 55, 50, 45, 40],
                 "measures": [

@@ -43,6 +43,97 @@ NOTE_NAMES = [
 
 SLIDE_MAP = {"below": 16, "above": 8, "toNext": 1, "legato": 1}
 
+# MIDI program number -> GP Sound path (matches Songsterr's GP export)
+# This is authoritative: the MIDI program determines the correct Sound path.
+MIDI_PROGRAM_SOUND_PATH: dict[int, str] = {
+    # Piano (0-7)
+    0: "Orchestra/Keyboard/Acoustic Piano",
+    1: "Orchestra/Keyboard/Acoustic Piano",
+    2: "Orchestra/Keyboard/Electric Piano",
+    3: "Orchestra/Keyboard/Acoustic Piano",
+    4: "Orchestra/Keyboard/Electric Piano",
+    5: "Orchestra/Keyboard/Electric Piano",
+    6: "Orchestra/Keyboard/Acoustic Piano",
+    7: "Orchestra/Keyboard/Acoustic Piano",
+    # Chromatic Percussion (8-15)
+    8: "Orchestra/Keyboard/Acoustic Piano",
+    # Organ (16-23)
+    16: "Orchestra/Keyboard/Acoustic Piano",
+    17: "Orchestra/Keyboard/Acoustic Piano",
+    18: "Orchestra/Keyboard/Acoustic Piano",
+    19: "Orchestra/Keyboard/Acoustic Piano",
+    # Guitar (24-31)
+    24: "Stringed/Acoustic Guitars/Resonator",
+    25: "Stringed/Acoustic Guitars/Resonator",
+    26: "Stringed/Electric Guitars/Jazz Guitar",
+    27: "Stringed/Electric Guitars/Clean Guitar",
+    28: "Stringed/Electric Guitars/Clean Guitar",
+    29: "Stringed/Electric Guitars/Overdrive Guitar",
+    30: "Stringed/Electric Guitars/Distortion Guitar",
+    31: "Stringed/Electric Guitars/Overdrive Guitar",
+    # Bass (32-39)
+    32: "Stringed/Basses/Clean Bass",
+    33: "Stringed/Basses/Clean Bass",
+    34: "Stringed/Basses/Clean Bass",
+    35: "Stringed/Basses/Clean Bass",
+    36: "Stringed/Basses/Clean Bass",
+    37: "Stringed/Basses/Clean Bass",
+    38: "Stringed/Basses/Clean Bass",
+    39: "Stringed/Basses/Clean Bass",
+    # Strings (40-43)
+    40: "Orchestra/Strings/Violin",
+    41: "Orchestra/Strings/Viola",
+    42: "Orchestra/Strings/Cello",
+    43: "Orchestra/Strings/Contrabass",
+    # Ensemble (44-47)
+    44: "Orchestra/Strings/Violin",
+    45: "Orchestra/Strings/Violin",
+    46: "Orchestra/Strings/Violin",
+    47: "Orchestra/Strings/Violin",
+    48: "Orchestra/Strings/Violin",
+    # Brass (56-63)
+    56: "Orchestra/Winds/Trumpet",
+    57: "Orchestra/Winds/Trombone",
+    58: "Orchestra/Winds/Tuba",
+    59: "Orchestra/Winds/French Horn",
+    60: "Orchestra/Winds/French Horn",
+    61: "Orchestra/Synth/Brass",
+    62: "Orchestra/Synth/Brass",
+    63: "Orchestra/Synth/Brass",
+    # Reed (64-71)
+    64: "Orchestra/Winds/Saxophone",
+    65: "Orchestra/Winds/Saxophone",
+    66: "Orchestra/Winds/Saxophone",
+    67: "Orchestra/Winds/Saxophone",
+    68: "Orchestra/Winds/Oboe",
+    69: "Orchestra/Winds/Bassoon",
+    70: "Orchestra/Winds/Clarinet",
+    71: "Orchestra/Winds/Flute",
+    # Pipe (72-79)
+    72: "Orchestra/Winds/Flute",
+    73: "Orchestra/Winds/Flute",
+    74: "Orchestra/Winds/Flute",
+    75: "Orchestra/Winds/Flute",
+    # Synth Lead (80-87)
+    80: "Orchestra/Synth/Lead",
+    81: "Orchestra/Synth/Lead",
+    82: "Orchestra/Synth/Lead",
+    83: "Orchestra/Synth/Lead",
+    84: "Orchestra/Synth/Lead",
+    85: "Orchestra/Synth/Lead",
+    86: "Orchestra/Synth/Lead",
+    87: "Orchestra/Synth/Lead",
+    # Synth Pad (88-95)
+    88: "Orchestra/Synth/Lead",
+    89: "Orchestra/Synth/Lead",
+    90: "Orchestra/Synth/Lead",
+    91: "Orchestra/Synth/Lead",
+    92: "Orchestra/Synth/Lead",
+    93: "Orchestra/Synth/Lead",
+    94: "Orchestra/Synth/Lead",
+    95: "Orchestra/Synth/Lead",
+}
+
 # Songsterr tripletFeel -> GP TripletFeel mapping
 TRIPLET_FEEL_MAP = {
     "8th": "Triplet8th",
@@ -916,6 +1007,8 @@ class GPIFBuilder:
         parts.append(self._build_staves_xml(is_drums, frets, num_strings, tuning_str, track_chords))
 
         # Build <Automations> block (Value must be CDATA-wrapped for GP8)
+        # Only drums and multi-sound tracks need Sound automations;
+        # single-sound non-drum tracks omit them (matches Songsterr's GP export).
         if is_drums:
             automations = '<Automations>\n<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n<Bar>0</Bar>\n<Position>0</Position>\n<Visible>true</Visible>\n<Value><![CDATA[Drums/Drums/Drumkit;Drumkit;Factory]]></Value>\n</Automation>\n</Automations>'
         elif track_autos and sounds_list:
@@ -923,23 +1016,21 @@ class GPIFBuilder:
             for sa in track_autos:
                 sid = sa["soundId"]
                 snd = sounds_list[sid] if sid < len(sounds_list) else sounds_list[0]
-                snd_type = get_instrument_type(snd["label"], snd.get("instrumentId", 25))
+                snd_inst_id = snd.get("instrumentId", 25)
+                snd_type = get_instrument_type(snd["label"], snd_inst_id)
+                snd_path = MIDI_PROGRAM_SOUND_PATH.get(snd_inst_id, snd_type["sound_path"])
                 bar = sa["measure"]
                 pos = sa.get("position", 0) / 960 if sa.get("position", 0) else 0
                 auto_parts.append(
                     f'<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n'
                     f'<Bar>{bar}</Bar>\n<Position>{pos}</Position>\n<Visible>true</Visible>\n'
-                    f'<Value><![CDATA[{snd_type["sound_path"]};{snd["label"]};User]]></Value>\n</Automation>')
+                    f'<Value><![CDATA[{snd_path};{snd["label"]};User]]></Value>\n</Automation>')
             auto_parts.append('</Automations>')
             automations = '\n'.join(auto_parts)
         else:
-            # Single-sound: add a default Sound automation at bar 0
-            automations = (
-                f'<Automations>\n<Automation>\n<Type>Sound</Type>\n<Linear>false</Linear>\n'
-                f'<Bar>0</Bar>\n<Position>0</Position>\n<Visible>true</Visible>\n'
-                f'<Value><![CDATA[{inst_type["sound_path"]};{instrument_name};User]]></Value>\n'
-                f'</Automation>\n</Automations>')
-        parts.append(automations)
+            automations = ''
+        if automations:
+            parts.append(automations)
         if is_drums:
             parts.append(DRUM_NOTATION_PATCH)
         parts.append('</Track>')
@@ -947,29 +1038,21 @@ class GPIFBuilder:
 
     @staticmethod
     def _build_sound_xml(instrument_name: str, instrument_id: int, inst_type: dict) -> str:
-        """Build a <Sound> XML block with RSE config for a non-drum instrument."""
-        fx_parts = []
-        for fx_id, fx_params in inst_type.get("effect_chain", []):
-            fx_parts.append(f'<Effect id="{fx_id}">\n<Parameters>{fx_params}</Parameters>\n</Effect>')
-        fx_chain = '\n'.join(fx_parts)
+        """Build a <Sound> XML block for a non-drum instrument.
 
-        sb_patch = inst_type.get("soundbank_patch")
-        sb_xml = f'<SoundbankPatch>{sb_patch}</SoundbankPatch>' if sb_patch else '<SoundbankPatch/>'
+        Uses MIDI_PROGRAM_SOUND_PATH for the authoritative Sound path (based on
+        MIDI program number), falling back to inst_type['sound_path'] for
+        programs not in the table.
+        """
+        sound_path = MIDI_PROGRAM_SOUND_PATH.get(instrument_id, inst_type["sound_path"])
 
         return (
             f'<Sound>\n'
             f'<Name><![CDATA[{escape_xml(instrument_name)}]]></Name>\n'
             f'<Label><![CDATA[{escape_xml(instrument_name)}]]></Label>\n'
-            f'<Path>{inst_type["sound_path"]}</Path>\n'
+            f'<Path>{sound_path}</Path>\n'
             f'<Role>User</Role>\n'
             f'<MIDI>\n<LSB>0</LSB>\n<MSB>0</MSB>\n<Program>{instrument_id}</Program>\n</MIDI>\n'
-            f'<RSE>\n'
-            f'{sb_xml}\n'
-            f'<ElementsSettings>\n</ElementsSettings>\n'
-            f'<Pickups>\n<OverloudPosition>0</OverloudPosition>\n'
-            f'<Volumes>1 1</Volumes>\n<Tones>1 1</Tones>\n</Pickups>\n'
-            f'<EffectChain>\n{fx_chain}\n</EffectChain>\n'
-            f'</RSE>\n'
             f'</Sound>')
 
     @staticmethod
