@@ -3,6 +3,7 @@
 
 import pytest
 import sys
+from unittest.mock import patch
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -12,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import gen_gp
 from gen_gp import (escape_xml, midi_to_pitch_xml, get_instrument_type, parse_song_id,
                      GPIFBuilder, TRIPLET_FEEL_MAP, DRUM_NOTATION_PATCH, tokenize_lyrics,
-                     _icon_from_midi_program)
+                     _icon_from_midi_program, fetch_track_json,
+                     SONGSTERR_CDN, SONGSTERR_CDN_STAGE)
 
 
 class TestXMLEscaping:
@@ -1742,6 +1744,43 @@ class TestLyricsSkipSentinels:
         builder = GPIFBuilder([track], {"artist": "T", "title": "T"})
         lyrics = self._get_beat_lyrics(builder)
         assert lyrics == ["a", "b"]
+
+
+class TestFetchTrackJson:
+    """Tests for CDN routing in fetch_track_json."""
+
+    @patch("gen_gp.requests.get")
+    def test_regular_image_uses_prod_cdn(self, mock_get):
+        mock_get.return_value.json.return_value = {"notes": []}
+        mock_get.return_value.raise_for_status = lambda: None
+        fetch_track_json(500, 12345, "v4-6-1-w53_zQhyw4snh2GB", 0)
+        url = mock_get.call_args[0][0]
+        assert url.startswith(SONGSTERR_CDN)
+        assert url.startswith(SONGSTERR_CDN_STAGE) is False
+
+    @patch("gen_gp.requests.get")
+    def test_stage_image_uses_stage_cdn(self, mock_get):
+        mock_get.return_value.json.return_value = {"notes": []}
+        mock_get.return_value.raise_for_status = lambda: None
+        fetch_track_json(23063, 5881803, "v0-3-2-L8A5yHif6uyGJvBQ-stage", 0)
+        url = mock_get.call_args[0][0]
+        assert url.startswith(SONGSTERR_CDN_STAGE)
+
+    @patch("gen_gp.requests.get")
+    def test_url_structure_prod(self, mock_get):
+        mock_get.return_value.json.return_value = {}
+        mock_get.return_value.raise_for_status = lambda: None
+        fetch_track_json(500, 12345, "abc123", 2)
+        url = mock_get.call_args[0][0]
+        assert url == f"{SONGSTERR_CDN}/500/12345/abc123/2.json"
+
+    @patch("gen_gp.requests.get")
+    def test_url_structure_stage(self, mock_get):
+        mock_get.return_value.json.return_value = {}
+        mock_get.return_value.raise_for_status = lambda: None
+        fetch_track_json(23063, 5881803, "v0-3-2-abc-stage", 1)
+        url = mock_get.call_args[0][0]
+        assert url == f"{SONGSTERR_CDN_STAGE}/23063/5881803/v0-3-2-abc-stage/1.json"
 
 
 if __name__ == "__main__":

@@ -227,6 +227,7 @@ DRUM_MIDI_TO_ART = {
 }
 
 SONGSTERR_CDN = "https://dqsljvtekg760.cloudfront.net"
+SONGSTERR_CDN_STAGE = "https://d3d3l6a6rcgkaf.cloudfront.net"
 BLANK_GP = resource_path("assets/blank.gp")
 DRUM_KIT_XML = resource_path("assets/drum_kit.xml")
 
@@ -481,7 +482,8 @@ def fetch_song_meta(song_id: int) -> dict:
 
 
 def fetch_track_json(song_id: int, revision_id: int, image_hash: str, part_index: int) -> dict:
-    url = f"{SONGSTERR_CDN}/{song_id}/{revision_id}/{image_hash}/{part_index}.json"
+    cdn = SONGSTERR_CDN_STAGE if image_hash.endswith("-stage") else SONGSTERR_CDN
+    url = f"{cdn}/{song_id}/{revision_id}/{image_hash}/{part_index}.json"
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
     return resp.json()
