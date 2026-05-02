@@ -226,8 +226,78 @@ DRUM_MIDI_TO_ART = {
     29: 91, 30: 92, 33: 93, 34: 94,
 }
 
-SONGSTERR_CDN = "https://dqsljvtekg760.cloudfront.net"
-SONGSTERR_CDN_STAGE = "https://d3d3l6a6rcgkaf.cloudfront.net"
+# CDN routing mirrors Songsterr's vendor JS (Xe/Ye/Je/Ke/qe).
+# Image hashes ending in "-stage" always use the stage CDN (Je).
+# Others rotate through CDN_LIST (Ke) on retry; legacy (no image) use CDN_LEGACY (qe).
+_CDN_STAGE = "d3d3l6a6rcgkaf"
+_CDN_LIST = ["dqsljvtekg760", "d34shlm8p2ums2", "d3cqchs6g3b5ew"]
+_CDN_LEGACY = ["d3rrfvx08uyjp1", "dodkcbujl0ebx", "dj1usja78sinh"]
+
+
+def _discover_cdn_config() -> tuple[str, list[str], list[str]]:
+    """Extract CDN config from Songsterr's vendor bundle (live source of truth).
+
+    Songsterr sends HTTP 103 Early Hints before the 200 — requests returns the
+    103 directly.  The Link header on the 103 carries the appClient bundle URL,
+    which we then chase to find the vendor chunk URL.
+    """
+    import re as _re
+
+    page = requests.get("https://www.songsterr.com", timeout=15)
+    static_base = "https://static3.songsterr.com/production-main/static3/latest"
+
+    if page.status_code == 103:
+        # Extract appClient URL from Link preload header
+        link_header = page.headers.get("Link", "")
+        app_match = _re.search(r'<(https://static3[^>]+appClient[^>]+\.js)>', link_header)
+        if not app_match:
+            raise ValueError("Could not locate appClient URL in 103 Link header")
+        app_url = app_match.group(1)
+    elif page.status_code == 200:
+        app_match = _re.search(r'(https://static3[^"]+appClient[^"]+\.js)', page.text)
+        if not app_match:
+            raise ValueError("Could not locate appClient URL in page body")
+        app_url = app_match.group(1)
+    else:
+        page.raise_for_status()
+
+    # appClient imports vendor chunk as a relative path: "./vendor-HASH.js"
+    app_js = requests.get(app_url, timeout=30).text
+    vendor_name = _re.search(r'"(\.\/vendor-[^"]+\.js)"', app_js)
+    if not vendor_name:
+        raise ValueError("Could not locate vendor chunk reference in appClient bundle")
+    vendor_url = f"{static_base}/{vendor_name.group(1).lstrip('./')}"
+    vendor_js = requests.get(vendor_url, timeout=30).text
+
+    # Je=`<stage_cdn>`;function Ye(e){return e.endsWith(`-stage`)}
+    stage = _re.search(r'Je=`([a-z0-9]+)`', vendor_js)
+    # Ke=[`a`,`b`,`c`]
+    ke = _re.search(r'Ke=\[([^\]]+)\]', vendor_js)
+    # ,qe=[`a`,`b`,`c`]
+    qe = _re.search(r',qe=\[([^\]]+)\]', vendor_js)
+    if not (stage and ke and qe):
+        raise ValueError("Could not parse CDN config from vendor bundle")
+    parse_list = lambda s: _re.findall(r'`([^`]+)`', s)
+    return stage.group(1), parse_list(ke.group(1)), parse_list(qe.group(1))
+
+
+def _cdn_for_image(image: str | None, attempt: int = 0) -> str:
+    if image and image.endswith("-stage"):
+        return _CDN_STAGE
+    elif image:
+        return _CDN_LIST[attempt % len(_CDN_LIST)]
+    else:
+        return _CDN_LEGACY[attempt % len(_CDN_LEGACY)]
+
+
+def _track_url(song_id: int, revision_id: int, image: str | None, part_index: int, attempt: int = 0) -> str:
+    cdn = _cdn_for_image(image, attempt)
+    if image:
+        return f"https://{cdn}.cloudfront.net/{song_id}/{revision_id}/{image}/{part_index}.json"
+    return f"https://{cdn}.cloudfront.net/part/{revision_id}/{part_index}"
+
+
+
 BLANK_GP = resource_path("assets/blank.gp")
 DRUM_KIT_XML = resource_path("assets/drum_kit.xml")
 
@@ -481,12 +551,29 @@ def fetch_song_meta(song_id: int) -> dict:
     return resp.json()
 
 
-def fetch_track_json(song_id: int, revision_id: int, image_hash: str, part_index: int) -> dict:
-    cdn = SONGSTERR_CDN_STAGE if image_hash.endswith("-stage") else SONGSTERR_CDN
-    url = f"{cdn}/{song_id}/{revision_id}/{image_hash}/{part_index}.json"
-    resp = requests.get(url, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
+def fetch_track_json(song_id: int, revision_id: int, image_hash: str | None, part_index: int) -> dict:
+    global _CDN_STAGE, _CDN_LIST, _CDN_LEGACY
+    last_exc = None
+    for attempt in range(max(len(_CDN_LIST), len(_CDN_LEGACY))):
+        url = _track_url(song_id, revision_id, image_hash, part_index, attempt)
+        resp = requests.get(url, timeout=30)
+        if resp.status_code == 403:
+            last_exc = requests.HTTPError(f"403 from {url}")
+            continue
+        resp.raise_for_status()
+        return resp.json()
+    # All hardcoded CDNs failed — scrape vendor bundle for current config and retry once
+    print("  All cached CDNs returned 403, scraping Songsterr vendor bundle...")
+    _CDN_STAGE, _CDN_LIST, _CDN_LEGACY = _discover_cdn_config()
+    for attempt in range(max(len(_CDN_LIST), len(_CDN_LEGACY))):
+        url = _track_url(song_id, revision_id, image_hash, part_index, attempt)
+        resp = requests.get(url, timeout=30)
+        if resp.status_code == 403:
+            last_exc = requests.HTTPError(f"403 from {url}")
+            continue
+        resp.raise_for_status()
+        return resp.json()
+    raise last_exc
 
 
 def fetch_all_tracks(song_id: int) -> tuple[dict, list[dict]]:

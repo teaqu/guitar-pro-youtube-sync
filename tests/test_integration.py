@@ -89,6 +89,60 @@ class TestSongsterrAPI:
 
 
 @pytest.mark.integration
+class TestCdnRouting:
+    """Integration tests for CDN discovery and track fetching."""
+
+    def test_discover_cdn_config_returns_non_empty_lists(self):
+        stage, cdn_list, legacy = gen_gp._discover_cdn_config()
+        assert isinstance(stage, str) and len(stage) > 0
+        assert isinstance(cdn_list, list) and len(cdn_list) > 0
+        assert isinstance(legacy, list) and len(legacy) > 0
+
+    def test_discover_cdn_config_stage_cdn_serves_stage_tracks(self):
+        """Stage CDN from vendor bundle must actually serve -stage image tracks."""
+        stage, _, _ = gen_gp._discover_cdn_config()
+        meta = gen_gp.fetch_song_meta(753932)  # Chezile - Beanie (has -stage image)
+        assert meta["image"].endswith("-stage"), "Test song must have -stage image hash"
+        import requests
+        url = f"https://{stage}.cloudfront.net/{meta['songId']}/{meta['revisionId']}/{meta['image']}/0.json"
+        resp = requests.head(url, timeout=10)
+        assert resp.status_code == 200, f"Stage CDN {stage} returned {resp.status_code} for {url}"
+
+    def test_fetch_track_json_stage_image(self):
+        """fetch_track_json succeeds for a song with a -stage image hash."""
+        meta = gen_gp.fetch_song_meta(753932)  # Chezile - Beanie
+        assert meta["image"].endswith("-stage")
+        data = gen_gp.fetch_track_json(meta["songId"], meta["revisionId"], meta["image"], 0)
+        assert "measures" in data
+        assert len(data["measures"]) > 0
+
+    def test_fetch_track_json_non_stage_image(self):
+        """fetch_track_json succeeds for a song with a non-stage image hash."""
+        meta = gen_gp.fetch_song_meta(23063)  # Gary Moore - Parisienne Walkways
+        # Verify assumptions about the image format so we know which CDN branch is tested
+        image = meta["image"]
+        data = gen_gp.fetch_track_json(meta["songId"], meta["revisionId"], image, 0)
+        assert "measures" in data
+        assert len(data["measures"]) > 0
+
+    def test_cdn_list_in_hardcoded_defaults(self):
+        """Scraped CDN config stage value must match our hardcoded default."""
+        stage, _, _ = gen_gp._discover_cdn_config()
+        assert stage == gen_gp._CDN_STAGE, (
+            f"Hardcoded _CDN_STAGE '{gen_gp._CDN_STAGE}' is out of date; "
+            f"vendor bundle now uses '{stage}'"
+        )
+
+    def test_cdn_list_hardcoded_defaults_still_valid(self):
+        """Scraped CDN list must contain all hardcoded CDN_LIST entries (or be a superset)."""
+        _, scraped_list, _ = gen_gp._discover_cdn_config()
+        for cdn in gen_gp._CDN_LIST:
+            assert cdn in scraped_list, (
+                f"Hardcoded CDN '{cdn}' no longer in vendor bundle CDN list {scraped_list}"
+            )
+
+
+@pytest.mark.integration
 class TestGPFileGeneration:
     """Integration tests for GP file generation."""
 

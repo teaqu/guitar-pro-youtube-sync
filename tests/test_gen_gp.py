@@ -6,6 +6,7 @@ import sys
 from unittest.mock import patch
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
 # Add parent directory to path to import modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -13,8 +14,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import gen_gp
 from gen_gp import (escape_xml, midi_to_pitch_xml, get_instrument_type, parse_song_id,
                      GPIFBuilder, TRIPLET_FEEL_MAP, DRUM_NOTATION_PATCH, tokenize_lyrics,
-                     _icon_from_midi_program, fetch_track_json,
-                     SONGSTERR_CDN, SONGSTERR_CDN_STAGE)
+                     _icon_from_midi_program, fetch_track_json, _cdn_for_image, _track_url,
+                     _CDN_STAGE, _CDN_LIST, _CDN_LEGACY)
 
 
 class TestXMLEscaping:
@@ -1746,41 +1747,286 @@ class TestLyricsSkipSentinels:
         assert lyrics == ["a", "b"]
 
 
+class TestCdnForImage:
+    """Tests for _cdn_for_image CDN selection logic."""
+
+    def test_stage_image_always_returns_stage_cdn(self):
+        cdn = _cdn_for_image("v0-3-2-uYO17mYkJ-yFk4C1-stage")
+        assert cdn == _CDN_STAGE == "d3d3l6a6rcgkaf"
+
+    def test_stage_image_ignores_attempt(self):
+        """Stage CDN is fixed regardless of retry attempt."""
+        assert _cdn_for_image("v0-3-2-abc-stage", attempt=0) == _CDN_STAGE
+        assert _cdn_for_image("v0-3-2-abc-stage", attempt=1) == _CDN_STAGE
+        assert _cdn_for_image("v0-3-2-abc-stage", attempt=99) == _CDN_STAGE
+
+    def test_non_stage_image_rotates_through_cdn_list(self):
+        for i, cdn in enumerate(_CDN_LIST):
+            assert _cdn_for_image("v0-3-2-somehash", attempt=i) == cdn
+
+    def test_non_stage_image_wraps_around(self):
+        assert _cdn_for_image("v0-3-2-somehash", attempt=len(_CDN_LIST)) == _CDN_LIST[0]
+        assert _cdn_for_image("v0-3-2-somehash", attempt=len(_CDN_LIST) + 1) == _CDN_LIST[1]
+
+    def test_no_image_rotates_through_legacy_list(self):
+        for i, cdn in enumerate(_CDN_LEGACY):
+            assert _cdn_for_image(None, attempt=i) == cdn
+
+    def test_no_image_wraps_around(self):
+        assert _cdn_for_image(None, attempt=len(_CDN_LEGACY)) == _CDN_LEGACY[0]
+
+    def test_empty_string_image_treated_as_falsy(self):
+        """Empty string image falls through to legacy CDN path."""
+        assert _cdn_for_image("") == _CDN_LEGACY[0]
+
+    def test_non_stage_suffix_not_matched(self):
+        """Only exact -stage suffix triggers stage CDN."""
+        assert _cdn_for_image("v0-3-2-abc-staging") == _CDN_LIST[0]
+        assert _cdn_for_image("v0-3-2-abc-stage-extra") == _CDN_LIST[0]
+        assert _cdn_for_image("stage") != _CDN_STAGE  # too short, no -stage suffix... actually "stage" doesn't end with "-stage"
+
+
+class TestTrackUrl:
+    """Tests for _track_url URL construction."""
+
+    def test_stage_image_url(self):
+        url = _track_url(753932, 6042038, "v0-3-2-uYO17mYkJ-yFk4C1-stage", 0)
+        assert url == f"https://{_CDN_STAGE}.cloudfront.net/753932/6042038/v0-3-2-uYO17mYkJ-yFk4C1-stage/0.json"
+
+    def test_regular_image_url(self):
+        url = _track_url(23063, 5881803, "v0-3-2-L8A5yHif6uyGJvBQ", 0)
+        assert url == f"https://{_CDN_LIST[0]}.cloudfront.net/23063/5881803/v0-3-2-L8A5yHif6uyGJvBQ/0.json"
+
+    def test_legacy_no_image_url(self):
+        url = _track_url(23063, 5881803, None, 0)
+        assert url == f"https://{_CDN_LEGACY[0]}.cloudfront.net/part/5881803/0"
+
+    def test_part_index_in_url(self):
+        url = _track_url(1, 2, "v0-3-2-hash-stage", 3)
+        assert url.endswith("/3.json")
+
+    def test_legacy_no_part_path(self):
+        """Legacy URL uses /part/{revision}/{partId} not /{song}/{revision}/{image}/{part}.json."""
+        url = _track_url(1, 999, None, 2)
+        assert "/part/999/2" in url
+        assert ".json" not in url
+
+    def test_attempt_rotates_cdn_for_regular_image(self):
+        url0 = _track_url(1, 2, "v0-3-2-hash", 0, attempt=0)
+        url1 = _track_url(1, 2, "v0-3-2-hash", 0, attempt=1)
+        assert _CDN_LIST[0] in url0
+        assert _CDN_LIST[1] in url1
+        assert url0 != url1
+
+
+class TestDiscoverCdnConfig:
+    """Tests for _discover_cdn_config regex parsing logic (all HTTP mocked)."""
+
+    SAMPLE_VENDOR_JS = (
+        "Ke=[`dqsljvtekg760`,`d34shlm8p2ums2`,`d3cqchs6g3b5ew`],"
+        "qe=[`d3rrfvx08uyjp1`,`dodkcbujl0ebx`,`dj1usja78sinh`],"
+        "Je=`d3d3l6a6rcgkaf`;function Ye(e){return e.endsWith(`-stage`)}"
+    )
+    SAMPLE_APP_JS = '"./vendor-ABC123.js"'
+
+    def _page_200(self):
+        r = MagicMock()
+        r.status_code = 200
+        r.text = 'src="https://static3.songsterr.com/production-main/static3/latest/appClient-XYZ.js"'
+        return r
+
+    def _page_103(self):
+        r = MagicMock()
+        r.status_code = 103
+        r.headers = {"Link": "<https://static3.songsterr.com/production-main/static3/latest/appClient-XYZ.js>; rel=modulepreload"}
+        r.text = ""
+        return r
+
+    def _app_resp(self):
+        r = MagicMock()
+        r.text = self.SAMPLE_APP_JS
+        return r
+
+    def _vendor_resp(self, js=None):
+        r = MagicMock()
+        r.text = js or self.SAMPLE_VENDOR_JS
+        return r
+
+    def test_parses_stage_cdn_via_200_page(self):
+        import gen_gp
+        responses = [self._page_200(), self._app_resp(), self._vendor_resp()]
+        with patch("gen_gp.requests.get", side_effect=responses):
+            stage, _, _ = gen_gp._discover_cdn_config()
+        assert stage == "d3d3l6a6rcgkaf"
+
+    def test_parses_stage_cdn_via_103_page(self):
+        import gen_gp
+        responses = [self._page_103(), self._app_resp(), self._vendor_resp()]
+        with patch("gen_gp.requests.get", side_effect=responses):
+            stage, _, _ = gen_gp._discover_cdn_config()
+        assert stage == "d3d3l6a6rcgkaf"
+
+    def test_parses_cdn_list(self):
+        import gen_gp
+        responses = [self._page_200(), self._app_resp(), self._vendor_resp()]
+        with patch("gen_gp.requests.get", side_effect=responses):
+            _, cdn_list, _ = gen_gp._discover_cdn_config()
+        assert cdn_list == ["dqsljvtekg760", "d34shlm8p2ums2", "d3cqchs6g3b5ew"]
+
+    def test_parses_legacy_list(self):
+        import gen_gp
+        responses = [self._page_200(), self._app_resp(), self._vendor_resp()]
+        with patch("gen_gp.requests.get", side_effect=responses):
+            _, _, legacy = gen_gp._discover_cdn_config()
+        assert legacy == ["d3rrfvx08uyjp1", "dodkcbujl0ebx", "dj1usja78sinh"]
+
+    def test_raises_when_app_url_not_in_200_body(self):
+        import gen_gp
+        page = MagicMock()
+        page.status_code = 200
+        page.text = "<html>no script url here</html>"
+        with patch("gen_gp.requests.get", return_value=page):
+            with pytest.raises(ValueError, match="appClient"):
+                gen_gp._discover_cdn_config()
+
+    def test_raises_when_app_url_not_in_103_link_header(self):
+        import gen_gp
+        page = MagicMock()
+        page.status_code = 103
+        page.headers = {"Link": "<https://example.com/other.js>; rel=preload"}
+        with patch("gen_gp.requests.get", return_value=page):
+            with pytest.raises(ValueError, match="appClient"):
+                gen_gp._discover_cdn_config()
+
+    def test_raises_when_vendor_ref_not_in_app_bundle(self):
+        import gen_gp
+        app = MagicMock()
+        app.text = "no vendor import here"
+        with patch("gen_gp.requests.get", side_effect=[self._page_200(), app]):
+            with pytest.raises(ValueError, match="vendor chunk"):
+                gen_gp._discover_cdn_config()
+
+    def test_raises_when_cdn_patterns_not_in_vendor_bundle(self):
+        import gen_gp
+        vendor = MagicMock()
+        vendor.text = "no cdn config here"
+        with patch("gen_gp.requests.get", side_effect=[self._page_200(), self._app_resp(), vendor]):
+            with pytest.raises(ValueError, match="parse CDN config"):
+                gen_gp._discover_cdn_config()
+
+
 class TestFetchTrackJson:
-    """Tests for CDN routing in fetch_track_json."""
+    """Tests for fetch_track_json CDN routing and retry logic."""
 
-    @patch("gen_gp.requests.get")
-    def test_regular_image_uses_prod_cdn(self, mock_get):
-        mock_get.return_value.json.return_value = {"notes": []}
-        mock_get.return_value.raise_for_status = lambda: None
-        fetch_track_json(500, 12345, "v4-6-1-w53_zQhyw4snh2GB", 0)
-        url = mock_get.call_args[0][0]
-        assert url.startswith(SONGSTERR_CDN)
-        assert url.startswith(SONGSTERR_CDN_STAGE) is False
+    @pytest.fixture(autouse=True)
+    def restore_cdn_globals(self):
+        """Restore CDN globals after each test to prevent state leakage."""
+        import gen_gp as gp
+        orig = (gp._CDN_STAGE, list(gp._CDN_LIST), list(gp._CDN_LEGACY))
+        yield
+        gp._CDN_STAGE, gp._CDN_LIST, gp._CDN_LEGACY = orig[0], orig[1], orig[2]
 
-    @patch("gen_gp.requests.get")
-    def test_stage_image_uses_stage_cdn(self, mock_get):
-        mock_get.return_value.json.return_value = {"notes": []}
-        mock_get.return_value.raise_for_status = lambda: None
-        fetch_track_json(23063, 5881803, "v0-3-2-L8A5yHif6uyGJvBQ-stage", 0)
-        url = mock_get.call_args[0][0]
-        assert url.startswith(SONGSTERR_CDN_STAGE)
+    def _ok(self, data=None):
+        r = MagicMock()
+        r.status_code = 200
+        r.json.return_value = data or {"measures": []}
+        return r
 
-    @patch("gen_gp.requests.get")
-    def test_url_structure_prod(self, mock_get):
-        mock_get.return_value.json.return_value = {}
-        mock_get.return_value.raise_for_status = lambda: None
-        fetch_track_json(500, 12345, "abc123", 2)
-        url = mock_get.call_args[0][0]
-        assert url == f"{SONGSTERR_CDN}/500/12345/abc123/2.json"
+    def _403(self):
+        r = MagicMock()
+        r.status_code = 403
+        return r
 
-    @patch("gen_gp.requests.get")
-    def test_url_structure_stage(self, mock_get):
-        mock_get.return_value.json.return_value = {}
-        mock_get.return_value.raise_for_status = lambda: None
-        fetch_track_json(23063, 5881803, "v0-3-2-abc-stage", 1)
+    def _500(self):
+        r = MagicMock()
+        r.status_code = 500
+        r.raise_for_status.side_effect = Exception("500 Server Error")
+        return r
+
+    def test_stage_image_uses_stage_cdn(self):
+        with patch("gen_gp.requests.get", return_value=self._ok()) as mock_get:
+            fetch_track_json(753932, 6042038, "v0-3-2-uYO17mYkJ-yFk4C1-stage", 0)
         url = mock_get.call_args[0][0]
-        assert url == f"{SONGSTERR_CDN_STAGE}/23063/5881803/v0-3-2-abc-stage/1.json"
+        assert f"{_CDN_STAGE}.cloudfront.net" in url
+        assert "dqsljvtekg760" not in url
+
+    def test_stage_image_retries_same_cdn_on_403(self):
+        """Stage CDN is fixed, so retries hit the same domain each time."""
+        responses = [self._403()] * len(_CDN_LIST) + [self._ok()]
+        with patch("gen_gp.requests.get", side_effect=responses) as mock_get, \
+             patch("gen_gp._discover_cdn_config", return_value=(_CDN_STAGE, _CDN_LIST, _CDN_LEGACY)):
+            fetch_track_json(753932, 6042038, "v0-3-2-abc-stage", 0)
+        urls = [c[0][0] for c in mock_get.call_args_list]
+        # All hardcoded attempts use the same stage CDN
+        for url in urls[:-1]:
+            assert _CDN_STAGE in url
+
+    def test_non_stage_image_first_cdn_succeeds(self):
+        with patch("gen_gp.requests.get", return_value=self._ok()) as mock_get:
+            fetch_track_json(23063, 5881803, "v0-3-2-somehash", 0)
+        url = mock_get.call_args[0][0]
+        assert _CDN_LIST[0] in url
+        assert mock_get.call_count == 1
+
+    def test_retries_cycle_through_cdn_list_on_403(self):
+        responses = [self._403(), self._ok()]
+        with patch("gen_gp.requests.get", side_effect=responses) as mock_get:
+            fetch_track_json(23063, 5881803, "v0-3-2-somehash", 0)
+        assert mock_get.call_count == 2
+        assert _CDN_LIST[0] in mock_get.call_args_list[0][0][0]
+        assert _CDN_LIST[1] in mock_get.call_args_list[1][0][0]
+
+    def test_all_cdn_list_attempted_before_scrape(self):
+        all_403 = [self._403()] * len(_CDN_LIST)
+        discovered = ("newstage", ["newcdn1"], ["newlegacy1"])
+        with patch("gen_gp.requests.get", side_effect=all_403 + [self._ok()]) as mock_get, \
+             patch("gen_gp._discover_cdn_config", return_value=discovered) as mock_discover:
+            fetch_track_json(23063, 5881803, "v0-3-2-somehash", 0)
+        assert mock_get.call_count == len(_CDN_LIST) + 1
+        mock_discover.assert_called_once()
+
+    def test_scrape_fallback_uses_discovered_cdn(self):
+        all_403 = [self._403()] * len(_CDN_LIST)
+        discovered = ("newstage", ["freshcdn99"], ["newlegacy1"])
+        with patch("gen_gp.requests.get", side_effect=all_403 + [self._ok()]), \
+             patch("gen_gp._discover_cdn_config", return_value=discovered):
+            fetch_track_json(23063, 5881803, "v0-3-2-somehash", 0)
+        import gen_gp as gp
+        assert gp._CDN_LIST == ["freshcdn99"]
+
+    def test_scrape_updates_globals_for_subsequent_calls(self):
+        """After a successful scrape, the updated globals are used for future fetches."""
+        all_403 = [self._403()] * len(_CDN_LIST)
+        discovered = ("newstage", ["freshcdn99"], ["newlegacy1"])
+        with patch("gen_gp.requests.get", side_effect=all_403 + [self._ok()]), \
+             patch("gen_gp._discover_cdn_config", return_value=discovered):
+            fetch_track_json(23063, 5881803, "v0-3-2-somehash", 0)
+        import gen_gp as gp
+        assert gp._CDN_STAGE == "newstage"
+        assert gp._CDN_LIST == ["freshcdn99"]
+        assert gp._CDN_LEGACY == ["newlegacy1"]
+
+    def test_raises_when_all_cdns_including_scraped_return_403(self):
+        n = max(len(_CDN_LIST), len(_CDN_LEGACY))
+        all_403 = [self._403()] * (n * 2 + 2)
+        discovered = ("newstage", ["cdn_a", "cdn_b", "cdn_c"], ["leg_a", "leg_b", "leg_c"])
+        with patch("gen_gp.requests.get", side_effect=all_403), \
+             patch("gen_gp._discover_cdn_config", return_value=discovered):
+            with pytest.raises(Exception):
+                fetch_track_json(23063, 5881803, "v0-3-2-somehash", 0)
+
+    def test_non_403_error_raises_immediately(self):
+        """A 500 or other non-403 error raises without attempting further CDNs."""
+        with patch("gen_gp.requests.get", side_effect=[self._500()]) as mock_get:
+            with pytest.raises(Exception):
+                fetch_track_json(23063, 5881803, "v0-3-2-somehash", 0)
+        assert mock_get.call_count == 1
+
+    def test_returns_parsed_json(self):
+        data = {"measures": [{"beats": []}], "name": "Guitar"}
+        with patch("gen_gp.requests.get", return_value=self._ok(data)):
+            result = fetch_track_json(1, 2, "v0-3-2-hash-stage", 0)
+        assert result == data
 
 
 if __name__ == "__main__":
