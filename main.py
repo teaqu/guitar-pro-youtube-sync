@@ -209,24 +209,28 @@ def try_download_audio(video_id: str, audio_path: Path, trim_start: float, confi
         except Exception as e:
             print(f"  Still failed: {e}")
 
-    # Third attempt: ask user to pick a browser
-    browser = prompt_browser_choice()
-    if not browser:
-        print("  Skipping audio.")
-        return False
+    # Ask for browsers until one works or the user explicitly skips audio.
+    while True:
+        browser = prompt_browser_choice()
+        if not browser:
+            print("  Skipping audio.")
+            return False
 
-    print(f"\n  Retrying with {browser} cookies...")
-    try:
-        download_youtube_audio(video_id, audio_path, trim_start=trim_start, cookies_browser=browser)
-        # Save successful browser for next time
-        config["cookie_browser"] = browser
-        save_config(config)
-        print(f"  (Saved {browser} as default browser for next time)")
-        return True
-    except Exception as e:
-        print(f"\n  Download failed again: {e}")
-        print("  Skipping audio.")
-        return False
+        print(f"\n  Retrying with {browser} cookies...")
+        try:
+            download_youtube_audio(video_id, audio_path, trim_start=trim_start, cookies_browser=browser)
+            # Save successful browser for next time
+            config["cookie_browser"] = browser
+            save_config(config)
+            print(f"  (Saved {browser} as default browser for next time)")
+            return True
+        except Exception as e:
+            print(f"\n  Download failed: {e}")
+            if browser == "safari" and "operation not permitted" in str(e).lower():
+                print("  macOS blocked access to Safari's cookies.")
+                print("  To use Safari, open System Settings > Privacy & Security > Full Disk Access,")
+                print("  enable the terminal app used to launch this program, then quit and reopen it.")
+            print("  Make sure you are logged into YouTube, or try another browser.")
 
 
 def process_song(config: dict) -> None:
@@ -315,10 +319,24 @@ def process_song(config: dict) -> None:
         audio_path.unlink()
 
     print_summary(bpms, points)
+    if audio_ok:
+        print("\nAudio embedded in synced file.")
+    else:
+        print("\nAudio was not downloaded; the synced file contains tab timing only.")
     print(f"\nDone! File saved to: {synced_path}")
 
 
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] in ("--self-test", "--live-test"):
+        from diagnostics import run_self_test
+
+        try:
+            run_self_test(live=sys.argv[1] == "--live-test")
+        except Exception as e:
+            print(f"Self-test failed: {e}")
+            raise SystemExit(1)
+        return
+
     print("=== Guitar Pro YouTube Sync ===")
 
     config = load_config()
@@ -331,6 +349,9 @@ def main():
             print("\nGoodbye!")
             break
         except KeyboardInterrupt:
+            print("\n\nGoodbye!")
+            break
+        except EOFError:
             print("\n\nGoodbye!")
             break
         except Exception as e:

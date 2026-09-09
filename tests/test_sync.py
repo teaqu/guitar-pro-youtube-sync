@@ -273,9 +273,11 @@ class TestCookiesOption:
         # Verify yt-dlp was initialized with cookies option
         opts = mock_ydl_cls.call_args[0][0]
         assert opts["cookiesfrombrowser"] == ("chrome",)
+        assert opts["extractor_args"]["youtube"]["player_client"] == ["default", "web_embedded"]
 
+    @patch('sync.get_js_runtimes', return_value={"deno": {"path": "/bundle/deno"}})
     @patch('sync.yt_dlp.YoutubeDL')
-    def test_download_youtube_audio_without_cookies(self, mock_ydl_cls, tmp_path):
+    def test_download_youtube_audio_without_cookies(self, mock_ydl_cls, mock_runtimes, tmp_path):
         """Test that yt-dlp works without cookies option."""
         mock_ydl = MagicMock()
         mock_ydl_cls.return_value.__enter__ = MagicMock(return_value=mock_ydl)
@@ -291,6 +293,8 @@ class TestCookiesOption:
         # Verify cookies option is NOT in the yt-dlp options
         opts = mock_ydl_cls.call_args[0][0]
         assert "cookiesfrombrowser" not in opts
+        assert opts["js_runtimes"] == {"deno": {"path": "/bundle/deno"}}
+        assert opts["no_warnings"] is False
 
     @patch('sync.yt_dlp.YoutubeDL')
     def test_download_youtube_audio_different_browsers(self, mock_ydl_cls, tmp_path):

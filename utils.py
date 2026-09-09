@@ -18,6 +18,13 @@ def get_ffmpeg_dir() -> str:
     return str(d) if d.exists() else ""
 
 
+def get_js_runtimes() -> dict:
+    """Use bundled Deno in releases, or discover Deno on PATH in development."""
+    executable = "deno.exe" if sys.platform == "win32" else "deno"
+    deno = resource_path("deno_bin") / executable
+    return {"deno": {"path": str(deno)} if deno.is_file() else {}}
+
+
 CONFIG_DIR = Path.home() / ".songstrr-sync"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 

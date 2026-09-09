@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils import resource_path, get_ffmpeg_dir, load_config, save_config
+from utils import resource_path, get_ffmpeg_dir, get_js_runtimes, load_config, save_config
 
 
 class TestResourcePath:
@@ -23,19 +23,20 @@ class TestResourcePath:
         result = resource_path("assets/blank.gp")
         assert result.exists()
 
-    def test_frozen_mode_uses_meipass(self):
+    def test_frozen_mode_uses_meipass(self, tmp_path):
+        meipass = tmp_path / "frozen bundle"
         with patch.object(sys, 'frozen', True, create=True), \
-             patch.object(sys, '_MEIPASS', '/tmp/fake_meipass', create=True):
+             patch.object(sys, '_MEIPASS', str(meipass), create=True):
             result = resource_path("assets/blank.gp")
-            assert str(result) == "/tmp/fake_meipass/assets/blank.gp"
+            assert result == meipass / "assets" / "blank.gp"
 
 
 class TestGetFfmpegDir:
     """Tests for get_ffmpeg_dir()."""
 
-    def test_returns_empty_string_when_no_bundled_ffmpeg(self):
-        result = get_ffmpeg_dir()
-        # In dev mode, ffmpeg_bin directory doesn't exist
+    def test_returns_empty_string_when_no_bundled_ffmpeg(self, tmp_path):
+        with patch('utils.resource_path', return_value=tmp_path / "missing_ffmpeg_bin"):
+            result = get_ffmpeg_dir()
         assert result == ""
 
     def test_returns_path_when_dir_exists(self, tmp_path):
@@ -44,6 +45,29 @@ class TestGetFfmpegDir:
         with patch('utils.resource_path', return_value=ffmpeg_dir):
             result = get_ffmpeg_dir()
             assert result == str(ffmpeg_dir)
+
+
+class TestJsRuntimes:
+    def test_falls_back_to_path(self, tmp_path):
+        with patch('utils.resource_path', return_value=tmp_path):
+            assert get_js_runtimes() == {"deno": {}}
+
+    def test_frozen_bundle_path_with_spaces(self, tmp_path):
+        bundle = tmp_path / "bundle with spaces"
+        runtime = bundle / "deno_bin" / "deno"
+        runtime.parent.mkdir(parents=True)
+        runtime.touch()
+        with patch.object(sys, 'frozen', True, create=True), \
+             patch.object(sys, '_MEIPASS', str(bundle), create=True), \
+             patch.object(sys, 'platform', 'darwin'):
+            assert get_js_runtimes() == {"deno": {"path": str(runtime)}}
+
+    def test_windows_executable(self, tmp_path):
+        runtime = tmp_path / "deno.exe"
+        runtime.touch()
+        with patch('utils.resource_path', return_value=tmp_path), \
+             patch.object(sys, 'platform', 'win32'):
+            assert get_js_runtimes() == {"deno": {"path": str(runtime)}}
 
 
 class TestConfig:

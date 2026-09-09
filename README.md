@@ -64,7 +64,7 @@ An error such as `HTTP Error 403: Forbidden` means the audio download was reject
 
 Make sure you are logged into YouTube in the selected browser. If the download still fails, try another browser where you are logged in.
 
-Pressing **Enter** at `Choice [7]:` skips the audio. If the browser retry also fails, the app skips audio automatically and continues applying the timing data.
+If a retry fails, the app asks again so you can retry or choose another browser. Choose **Skip audio** (or press **Enter** at `Choice [7]:`) to continue without audio.
 
 **A `_synced.gp` filename or a “Done!” message does not guarantee embedded audio.** If the log says `Skipping audio`, the result contains timing adjustments but no downloaded backing audio.
 
@@ -86,6 +86,7 @@ If you want to run from source instead of the pre-built executable:
 
 - **Python 3.10+**
 - **[ffmpeg](https://ffmpeg.org/)** -- for audio conversion
+- **[Deno 2.3+](https://deno.com/)** -- for YouTube JavaScript challenges; must be available on your PATH when running from source. Release builds bundle the runtime.
 
 ### Installation
 
@@ -226,6 +227,25 @@ Done!
 4. Patches the `.gp` file (a ZIP containing XML) by injecting SyncPoint automations and embedding the MP3 as a backing track asset
 
 ## Testing
+
+GitHub Actions runs regression tests on Linux, Windows, and macOS (Apple Silicon and Intel), using Python 3.12 and 3.14, for pushes to `main` and pull requests. It also builds each executable and runs an offline end-to-end test with system Deno and FFmpeg removed from PATH. The test checks bundled JavaScript resources, downloads generated audio from a local test server, converts and trims it, and verifies the audio and sync points in the resulting GP archive.
+
+Run the same checks locally:
+
+```bash
+# Offline end-to-end check (requires Deno and FFmpeg when running from source)
+python main.py --self-test
+
+# Check a built executable with no system media tools available
+python scripts/check_executable.py dist/guitar-pro-sync-macos-arm64
+
+# Live Songsterr → YouTube audio → synced GP check
+python main.py --live-test
+```
+
+The live check runs weekly on Linux, Windows, and macOS, or manually through **Actions → Build Executables → Run workflow → live_tests**. It uses public song data and never reads browser cookies. Failed packaged or live checks retain logs as workflow artifacts. Live failures can reflect upstream changes or restrictions on the runner's network, so they are separate from the offline release checks.
+
+Browser regression tests simulate Safari permission denial and YouTube cookie errors while exercising the real prompts and retry flow. They cannot verify your personal browser login or grant macOS privacy permissions. Safari cookie access still requires permission from the user; the app explains how to grant it or lets you choose another browser.
 
 The project includes test suites for `sync.py` and `gen_gp.py`:
 

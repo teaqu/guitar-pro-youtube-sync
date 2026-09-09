@@ -13,3 +13,5 @@ __pycache__/
 build/
 dist/
 *.spec
+deno_bin/
+ffmpeg_bin/

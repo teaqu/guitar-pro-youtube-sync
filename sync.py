@@ -26,7 +26,7 @@ import requests
 import yt_dlp
 
 import gen_gp
-from utils import get_ffmpeg_dir
+from utils import get_ffmpeg_dir, get_js_runtimes
 
 
 def fetch_video_points(song_id: int, revision_id: int) -> list[dict]:
@@ -176,12 +176,17 @@ def download_youtube_audio(video_id: str, output_path: Path, trim_start: float =
                     Used to skip the video intro before measure 1.
         cookies_browser: Browser to extract cookies from (chrome, firefox, safari, edge, etc.).
     """
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    print(f"  Downloading YouTube audio: {url}")
+    return _download_audio(url, output_path, trim_start, cookies_browser)
+
+
+def _download_audio(url: str, output_path: Path, trim_start: float = 0.0,
+                    cookies_browser: str | None = None) -> Path:
+    """Shared download/conversion path, also exercised against a local test server."""
     if output_path.exists():
         print(f"  Audio already exists: {output_path}")
         return output_path
-
-    url = f"https://www.youtube.com/watch?v={video_id}"
-    print(f"  Downloading YouTube audio: {url}")
 
     # Use yt-dlp Python API instead of subprocess
     temp_template = str(output_path.parent / ".dl_audio.%(ext)s")
@@ -196,7 +201,8 @@ def download_youtube_audio(video_id: str, output_path: Path, trim_start: float =
             "preferredquality": "0",
         }],
         "quiet": True,
-        "no_warnings": True,
+        "no_warnings": False,
+        "js_runtimes": get_js_runtimes(),
     }
 
     if ffmpeg_dir:
@@ -204,6 +210,10 @@ def download_youtube_audio(video_id: str, output_path: Path, trim_start: float =
 
     if cookies_browser:
         ydl_opts["cookiesfrombrowser"] = (cookies_browser,)
+        # Upstream workaround for authenticated "page needs to be reloaded" errors.
+        ydl_opts["extractor_args"] = {
+            "youtube": {"player_client": ["default", "web_embedded"]},
+        }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
