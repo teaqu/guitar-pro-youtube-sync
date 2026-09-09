@@ -17,7 +17,7 @@ class TestResourcePath:
     def test_returns_path_in_dev_mode(self):
         result = resource_path("assets/blank.gp")
         assert isinstance(result, Path)
-        assert str(result).endswith("assets/blank.gp")
+        assert result.parts[-2:] == ("assets", "blank.gp")
 
     def test_returns_existing_file(self):
         result = resource_path("assets/blank.gp")
