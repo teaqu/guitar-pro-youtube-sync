@@ -16,17 +16,57 @@ Pre-built executables are available:
 | macOS (Intel) | `guitar-pro-sync-macos-x86_64.zip` |
 | Linux | `guitar-pro-sync-linux-x86_64.zip` |
 
-Download and extract, then run and follow the prompts. 
+Download the file for your platform and extract it if it is a ZIP. Follow the walkthrough below to create your first file.
 
-> **macOS:** You may see "Apple could not verify this app."  
->1. Attempt to open the app normally (double-click) to trigger the "cannot be opened" alert, and dismiss the dialog.  
->2. Open System Settings.  
->3. Go to Privacy & Security.  
->4. Scroll down to the Security section.  
->5. Click the "Open Anyway" button displayed for the recently blocked application.  
->6. Enter your administrator password to confirm.  
->
 > **Windows:** Windows Defender or SmartScreen may flag the download. Click **More info** → **Run anyway**.
+
+## Using the downloaded executable
+
+1. **Launch the executable** to open the text prompts. You can double-click it or run it from a terminal in the folder where you extracted it.
+2. **Paste a Songsterr URL or song ID**, then press **Enter**. For example, use `https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s19` or simply `19`.
+3. At **Sync audio to:**, press **Enter** or type `1` to generate a new Guitar Pro file. To sync an existing file instead, type `2`, press **Enter**, and enter its full file path when asked.
+4. If generating a new file, at **Include YouTube audio? [Y/n]:**, press **Enter** for yes. Type `n` and press **Enter** to generate only the tab.
+5. **Choose a video type** if a menu appears. Press **Enter** for the default or enter the number shown for Full Mix, Backing Track, Solo, or Playthrough. Available options depend on the song; some choices open a second menu.
+6. **Wait for the download and sync to finish.** If an audio download fails, follow the browser-cookie instructions below.
+7. **Open the result in Guitar Pro.** The final `Done! File saved to:` message gives the full path. With audio syncing selected, the output normally ends in `_synced.gp`.
+8. Paste another song URL to process another song, or type `q` and press **Enter** to quit.
+
+Pressing **Enter** without typing accepts the default shown in brackets, such as `[1]` or `[Y/n]`.
+
+### Example: Enter Sandman
+
+For a new tab with the full mix, enter these answers:
+
+| Prompt | Answer |
+|--------|--------|
+| Enter Songsterr URL or song ID | `19` |
+| Sync audio to — Choice [1] | `1` |
+| Include YouTube audio? [Y/n] | Press **Enter** |
+| Select video type — Choice [1] | `1` (Full Mix in this example) |
+
+The app fetches the instrument tracks, generates `Metallica - Enter Sandman.gp`, attempts to download the selected audio, and creates `Metallica - Enter Sandman_synced.gp` with the timing adjustments.
+
+The app tells you where the file is saved in the **Done! File saved to:** message.
+
+### If YouTube audio fails to download
+
+An error such as `HTTP Error 403: Forbidden` means the audio download was rejected. The app offers to retry using cookies from a browser where you are logged into YouTube:
+
+```text
+1. chrome
+2. firefox
+3. edge
+4. brave
+5. safari
+6. opera
+7. Skip audio
+```
+
+Make sure you are logged into YouTube in the selected browser. If the download still fails, try another browser where you are logged in.
+
+Pressing **Enter** at `Choice [7]:` skips the audio. If the browser retry also fails, the app skips audio automatically and continues applying the timing data.
+
+**A `_synced.gp` filename or a “Done!” message does not guarantee embedded audio.** If the log says `Skipping audio`, the result contains timing adjustments but no downloaded backing audio.
 
 ## What It Does
 
