@@ -4,6 +4,19 @@ import json
 import sys
 from pathlib import Path
 
+# Songsterr's nginx front end rejects requests that use Python's default
+# ``python-requests`` User-Agent with HTTP 403. Sending the headers a normal
+# browser sends keeps the public API reachable.
+SONGSTERR_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/130.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
 
 def resource_path(relative_path: str) -> Path:
     """Resolve bundled resource path (works in dev + PyInstaller)."""

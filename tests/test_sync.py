@@ -23,6 +23,8 @@ from sync import (
     get_video_options,
     list_video_entries,
     download_youtube_audio,
+    fetch_song_meta,
+    fetch_video_points,
 )
 
 
@@ -586,6 +588,33 @@ class TestListVideoEntries:
         assert "https://youtu.be/vid1" in lines[3]
         assert "https://youtu.be/vid2" in lines[4]
         assert "https://youtu.be/vid3" in lines[5]
+
+
+class TestSongsterrRequestHeaders:
+    """Songsterr rejects Python's default User-Agent with HTTP 403."""
+
+    def _response(self, payload):
+        resp = MagicMock()
+        resp.json.return_value = payload
+        return resp
+
+    def test_fetch_song_meta_sends_browser_headers(self):
+        with patch("sync.requests.get", return_value=self._response({"songId": 1})) as mock_get:
+            fetch_song_meta(1)
+
+        headers = mock_get.call_args.kwargs["headers"]
+        assert headers["User-Agent"].startswith("Mozilla/5.0")
+        assert "python-requests" not in headers["User-Agent"].lower()
+        assert headers["Accept"] == "application/json, text/plain, */*"
+        assert headers["Accept-Language"] == "en-US,en;q=0.9"
+
+    def test_fetch_video_points_sends_browser_headers(self):
+        with patch("sync.requests.get", return_value=self._response([])) as mock_get:
+            fetch_video_points(1, 2)
+
+        headers = mock_get.call_args.kwargs["headers"]
+        assert headers["User-Agent"].startswith("Mozilla/5.0")
+        assert "python-requests" not in headers["User-Agent"].lower()
 
 
 if __name__ == "__main__":

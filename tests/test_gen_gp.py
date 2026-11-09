@@ -1914,6 +1914,19 @@ class TestDiscoverCdnConfig:
             with pytest.raises(ValueError, match="parse CDN config"):
                 gen_gp._discover_cdn_config()
 
+    def test_requests_use_browser_headers(self):
+        """The Songsterr page and bundles must not be fetched as python-requests."""
+        import gen_gp
+        responses = [self._page_200(), self._app_resp(), self._vendor_resp()]
+        with patch("gen_gp.requests.get", side_effect=responses) as mock_get:
+            gen_gp._discover_cdn_config()
+
+        assert mock_get.call_count == 3
+        for call in mock_get.call_args_list:
+            headers = call.kwargs["headers"]
+            assert headers["User-Agent"].startswith("Mozilla/5.0")
+            assert "python-requests" not in headers["User-Agent"].lower()
+
 
 class TestFetchTrackJson:
     """Tests for fetch_track_json CDN routing and retry logic."""
@@ -2027,6 +2040,34 @@ class TestFetchTrackJson:
         with patch("gen_gp.requests.get", return_value=self._ok(data)):
             result = fetch_track_json(1, 2, "v0-3-2-hash-stage", 0)
         assert result == data
+
+
+class TestSongsterrRequestHeaders:
+    """Songsterr rejects Python's default User-Agent with HTTP 403."""
+
+    def _response(self, payload):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = payload
+        return resp
+
+    def test_fetch_song_meta_sends_browser_headers(self):
+        with patch("gen_gp.requests.get", return_value=self._response({"songId": 1})) as mock_get:
+            gen_gp.fetch_song_meta(1)
+
+        headers = mock_get.call_args.kwargs["headers"]
+        assert headers["User-Agent"].startswith("Mozilla/5.0")
+        assert "python-requests" not in headers["User-Agent"].lower()
+        assert headers["Accept"] == "application/json, text/plain, */*"
+        assert headers["Accept-Language"] == "en-US,en;q=0.9"
+
+    def test_fetch_track_json_sends_browser_headers(self):
+        with patch("gen_gp.requests.get", return_value=self._response({"measures": []})) as mock_get:
+            fetch_track_json(1, 2, "v0-3-2-hash-stage", 0)
+
+        headers = mock_get.call_args.kwargs["headers"]
+        assert headers["User-Agent"].startswith("Mozilla/5.0")
+        assert "python-requests" not in headers["User-Agent"].lower()
 
 
 if __name__ == "__main__":

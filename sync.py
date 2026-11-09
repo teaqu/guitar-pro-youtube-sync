@@ -26,14 +26,14 @@ import requests
 import yt_dlp
 
 import gen_gp
-from utils import get_ffmpeg_dir, get_js_runtimes
+from utils import SONGSTERR_HEADERS, get_ffmpeg_dir, get_js_runtimes
 
 
 def fetch_video_points(song_id: int, revision_id: int) -> list[dict]:
     """Fetch video points JSON from Songsterr API."""
     url = f"https://www.songsterr.com/api/video-points/{song_id}/{revision_id}/list"
     print(f"Fetching video points from: {url}")
-    resp = requests.get(url, timeout=30)
+    resp = requests.get(url, headers=SONGSTERR_HEADERS, timeout=30)
     resp.raise_for_status()
     data = resp.json()
     print(f"  Found {len(data)} video entries")
@@ -44,7 +44,7 @@ def fetch_song_meta(song_id: int) -> dict:
     """Fetch song metadata from Songsterr API."""
     url = f"https://www.songsterr.com/api/meta/{song_id}"
     print(f"Fetching song metadata from: {url}")
-    resp = requests.get(url, timeout=30)
+    resp = requests.get(url, headers=SONGSTERR_HEADERS, timeout=30)
     resp.raise_for_status()
     return resp.json()
 

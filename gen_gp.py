@@ -20,7 +20,7 @@ from pathlib import Path
 
 import requests
 
-from utils import resource_path
+from utils import SONGSTERR_HEADERS, resource_path
 
 DURATION_MAP = {
     1: "Whole", 2: "Half", 4: "Quarter", 8: "Eighth",
@@ -243,7 +243,7 @@ def _discover_cdn_config() -> tuple[str, list[str], list[str]]:
     """
     import re as _re
 
-    page = requests.get("https://www.songsterr.com", timeout=15)
+    page = requests.get("https://www.songsterr.com", headers=SONGSTERR_HEADERS, timeout=15)
     static_base = "https://static3.songsterr.com/production-main/static3/latest"
 
     if page.status_code == 103:
@@ -262,12 +262,12 @@ def _discover_cdn_config() -> tuple[str, list[str], list[str]]:
         page.raise_for_status()
 
     # appClient imports vendor chunk as a relative path: "./vendor-HASH.js"
-    app_js = requests.get(app_url, timeout=30).text
+    app_js = requests.get(app_url, headers=SONGSTERR_HEADERS, timeout=30).text
     vendor_name = _re.search(r'"(\.\/vendor-[^"]+\.js)"', app_js)
     if not vendor_name:
         raise ValueError("Could not locate vendor chunk reference in appClient bundle")
     vendor_url = f"{static_base}/{vendor_name.group(1).lstrip('./')}"
-    vendor_js = requests.get(vendor_url, timeout=30).text
+    vendor_js = requests.get(vendor_url, headers=SONGSTERR_HEADERS, timeout=30).text
 
     # Je=`<stage_cdn>`;function Ye(e){return e.endsWith(`-stage`)}
     stage = _re.search(r'Je=`([a-z0-9]+)`', vendor_js)
@@ -546,7 +546,7 @@ def get_instrument_type(instrument_name: str, instrument_id: int = 25) -> dict:
 def fetch_song_meta(song_id: int) -> dict:
     url = f"https://www.songsterr.com/api/meta/{song_id}"
     print(f"Fetching song metadata: {url}")
-    resp = requests.get(url, timeout=30)
+    resp = requests.get(url, headers=SONGSTERR_HEADERS, timeout=30)
     resp.raise_for_status()
     return resp.json()
 
@@ -556,7 +556,7 @@ def fetch_track_json(song_id: int, revision_id: int, image_hash: str | None, par
     last_exc = None
     for attempt in range(max(len(_CDN_LIST), len(_CDN_LEGACY))):
         url = _track_url(song_id, revision_id, image_hash, part_index, attempt)
-        resp = requests.get(url, timeout=30)
+        resp = requests.get(url, headers=SONGSTERR_HEADERS, timeout=30)
         if resp.status_code == 403:
             last_exc = requests.HTTPError(f"403 from {url}")
             continue
@@ -567,7 +567,7 @@ def fetch_track_json(song_id: int, revision_id: int, image_hash: str | None, par
     _CDN_STAGE, _CDN_LIST, _CDN_LEGACY = _discover_cdn_config()
     for attempt in range(max(len(_CDN_LIST), len(_CDN_LEGACY))):
         url = _track_url(song_id, revision_id, image_hash, part_index, attempt)
-        resp = requests.get(url, timeout=30)
+        resp = requests.get(url, headers=SONGSTERR_HEADERS, timeout=30)
         if resp.status_code == 403:
             last_exc = requests.HTTPError(f"403 from {url}")
             continue
