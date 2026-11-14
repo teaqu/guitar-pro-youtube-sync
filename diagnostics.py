@@ -95,7 +95,7 @@ def run_self_test(live: bool = False):
             points = entry["points"]
             download_youtube_audio(entry["videoId"], audio, trim_start=points[0])
         else:
-            tracks = [{"name": "Test guitar", "instrumentId": 25, "strings": 6,
+            tracks = [{"name": "Test guitar", "instrumentId": 25, "instrument": "Steel Guitar", "strings": 6,
                        "tuning": [64, 59, 55, 50, 45, 40],
                        "measures": [{"voices": [{"beats": [
                            {"type": 4, "notes": [{"fret": 0, "string": 0}]}
@@ -118,4 +118,19 @@ def run_self_test(live: bool = False):
             raise RuntimeError("Download did not produce audio")
         sync_gp_file(gp, points, output, mp3_path=audio)
         _validate_output(output, audio, probe, expected_duration=None if live else 2.0)
+        if not live:
+            from feedpak import export_feedpak
+            package = folder / "test.feedpak"
+            export_feedpak({"artist": "Self test", "title": "Feedpak"}, tracks, points, audio, package)
+            with ZipFile(package) as archive:
+                manifest = json.loads(archive.read("manifest.yaml"))
+                chart = json.loads(archive.read(manifest["arrangements"][0]["file"]))
+                assert [note["t"] for note in chart["notes"]] == [0.0, 0.5, 1.0, 1.5]
+                assert chart["anchors"]
+                assert archive.read(manifest["song_timeline"])
+                stem = folder / "feedpak.ogg"
+                stem.write_bytes(archive.read("stems/full.ogg"))
+            info = json.loads(_run([probe, "-v", "error", "-show_entries", "format=duration", "-of", "json", str(stem)]))
+            assert abs(float(info["format"]["duration"]) - 2.0) < 0.2
+            print("Validated feedpak with audio, timeline, notes, and camera anchors")
     print("LIVE TEST PASSED" if live else "SELF-TEST PASSED")

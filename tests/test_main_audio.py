@@ -78,7 +78,7 @@ def test_process_song_reports_timing_only_file_after_explicit_audio_skip(monkeyp
     """The final result must say that an explicitly skipped download has no audio."""
     gp_file = tmp_path / "Artist - Song.gp"
     synced_file = tmp_path / "Artist - Song_synced.gp"
-    inputs = iter(["19", "1", "y", str(len(main.BROWSERS) + 1)])
+    inputs = iter(["19", "1", "1", "y", str(len(main.BROWSERS) + 1)])
     monkeypatch.setattr("builtins.input", lambda _prompt: next(inputs))
     monkeypatch.setattr(main, "fetch_song_meta", Mock(return_value={
         "artist": "Artist", "title": "Song", "revisionId": 1, "tracks": [],
@@ -106,7 +106,7 @@ def test_process_song_reports_timing_only_file_after_explicit_audio_skip(monkeyp
 
 def test_process_song_retries_safari_then_chrome_before_downloading(monkeypatch, tmp_path, capsys):
     """Exercise the CLI flow while replacing only the external downloader boundary."""
-    inputs = iter(["19", "1", "y", "5", "1", "2"])
+    inputs = iter(["19", "1", "1", "y", "5", "1", "2"])
     monkeypatch.setattr("builtins.input", lambda _prompt: next(inputs))
     monkeypatch.setattr(main, "fetch_song_meta", Mock(return_value={
         "artist": "Artist", "title": "Song", "revisionId": 1, "tracks": [],

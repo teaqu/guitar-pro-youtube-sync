@@ -15,3 +15,7 @@ dist/
 *.spec
 deno_bin/
 ffmpeg_bin/
+
+# Exported packages and conversion logs
+*.feedpak
+feedpak-export.log

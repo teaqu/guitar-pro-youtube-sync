@@ -262,6 +262,43 @@ def process_song(config: dict) -> None:
     num_tracks = len(meta.get("tracks", []))
     print(f"  Found: {artist} - {title} ({num_tracks} tracks)")
 
+    print("\nOutput format:")
+    print("  1. Guitar Pro (default)")
+    print("  2. fee[dB]ack feedpak")
+    while True:
+        choice = input("Choice [1]: ").strip()
+        if choice in ("", "1", "2"):
+            break
+        print("  Please enter 1 or 2")
+    if choice == "2":
+        from feedpak import export_feedpak, configure_logging
+        configure_logging()
+        import tempfile
+        try:
+            gp_meta, tracks = gen_gp.fetch_all_tracks(song_id)
+            entries = fetch_video_points(song_id, meta["revisionId"])
+            entry = prompt_video_type(entries, meta.get("tracks", []))
+            points = entry["points"]
+            if len(points) < 2:
+                raise ValueError("This video does not have enough sync points.")
+            safe = "".join(c if c.isalnum() or c in " -_" else "" for c in f"{artist} - {title}").strip() or "output"
+            output = Path(f"{safe}.feedpak").resolve()
+            if output.exists():
+                raise FileExistsError(f"Output already exists: {output}")
+            with tempfile.TemporaryDirectory() as tmp:
+                audio = Path(tmp) / "audio.mp3"
+                if not try_download_audio(entry["videoId"], audio, 0, config):
+                    print("  A feedpak requires audio; export cancelled.")
+                    return
+                export_feedpak(gp_meta, tracks, points, audio, output, audio_offset=points[0])
+            print(f"\nDone! Feedpak saved to: {output}")
+
+        except Exception as e:
+            import logging
+            logging.getLogger("feedpak").exception("Feedpak export failed")
+            print("\n  Feedpak export failed. Details are in feedpak-export.log.")
+        return
+
     # Check for existing GP file to sync
     safe_name = "".join(c if c.isalnum() or c in " -_" else "" for c in f"{artist} - {title}").strip()
     existing_gp = prompt_existing_gp_file()

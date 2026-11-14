@@ -1,11 +1,11 @@
 # guitar-pro-youtube-sync
-Generate Guitar Pro tabs from Songsterr and sync them with YouTube audio. Produces a `.gp` file with embedded audio and per-measure tempo mapping so your tab plays back in time with YouTube.
+Turn a Songsterr tab into a Guitar Pro file or a `.feedpak` file, complete with backing audio from YouTube.
 
 ![Guitar Pro with synced backing track](assets/screenshot.png)
 
 ## Download
 
-Pre-built executables are available:
+Pre-built executables are available for Windows, macOS, and Linux.
 
 **[Download the latest release](https://github.com/teaqu/guitar-pro-youtube-sync/releases/latest)**
 
@@ -22,16 +22,16 @@ Download the file for your platform and extract it if it is a ZIP. Follow the wa
 
 ## Using the downloaded executable
 
-1. **Launch the executable** to open the text prompts. You can double-click it or run it from a terminal in the folder where you extracted it.
-2. **Paste a Songsterr URL or song ID**, then press **Enter**. For example, use `https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s19` or simply `19`.
-3. At **Sync audio to:**, press **Enter** or type `1` to generate a new Guitar Pro file. To sync an existing file instead, type `2`, press **Enter**, and enter its full file path when asked.
-4. If generating a new file, at **Include YouTube audio? [Y/n]:**, press **Enter** for yes. Type `n` and press **Enter** to generate only the tab.
-5. **Choose a video type** if a menu appears. Press **Enter** for the default or enter the number shown for Full Mix, Backing Track, Solo, or Playthrough. Available options depend on the song; some choices open a second menu.
-6. **Wait for the download and sync to finish.** If an audio download fails, follow the browser-cookie instructions below.
-7. **Open the result in Guitar Pro.** The final `Done! File saved to:` message gives the full path. With audio syncing selected, the output normally ends in `_synced.gp`.
-8. Paste another song URL to process another song, or type `q` and press **Enter** to quit.
+1. Double-click the downloaded executable to open the app.
+2. Paste a Songsterr URL or song ID and press **Enter**.
+3. At **Output format**, choose `1` for Guitar Pro (the default) or `2` for fee[dB]ack feedpak.
+4. For Guitar Pro, choose **Generate new GP file** or **Use existing GP file**, then follow the audio prompts. For fee[dB]ack, the app prepares the guitar and bass parts with backing audio.
+5. Select a video type when prompted. **Full Mix** is the default when available. Other options may include Backing Track, Solo, or Playthrough.
+6. Wait for the file to finish. If the audio download fails, choose a browser where you are signed in to YouTube when prompted.
+7. Open the resulting `.gp` in Guitar Pro, or import the `.feedpak` into fee[dB]ack. The final message gives the saved file's full path.
+8. Enter another song URL, or type `q` to quit.
 
-Pressing **Enter** without typing accepts the default shown in brackets, such as `[1]` or `[Y/n]`.
+Pressing **Enter** accepts the default shown in brackets.
 
 ### Example: Enter Sandman
 
@@ -40,6 +40,7 @@ For a new tab with the full mix, enter these answers:
 | Prompt | Answer |
 |--------|--------|
 | Enter Songsterr URL or song ID | `19` |
+| Output format — Choice [1] | `1` (Guitar Pro) |
 | Sync audio to — Choice [1] | `1` |
 | Include YouTube audio? [Y/n] | Press **Enter** |
 | Select video type — Choice [1] | `1` (Full Mix in this example) |
@@ -64,9 +65,33 @@ An error such as `HTTP Error 403: Forbidden` means the audio download was reject
 
 Make sure you are logged into YouTube in the selected browser. If the download still fails, try another browser where you are logged in.
 
-If a retry fails, the app asks again so you can retry or choose another browser. Choose **Skip audio** (or press **Enter** at `Choice [7]:`) to continue without audio.
+If a retry fails, the app asks again so you can retry or choose another browser. Choose **Skip audio** (or press **Enter** at `Choice [7]:`) to continue without audio when exporting Guitar Pro. A feedpak requires audio, so skipping the download cancels that export.
 
 **A `_synced.gp` filename or a “Done!” message does not guarantee embedded audio.** If the log says `Skipping audio`, the result contains timing adjustments but no downloaded backing audio.
+
+## Create a .feedpak file
+
+1. Paste a Songsterr link or song ID.
+2. At **Output format**, type `2` and press **Enter**.
+3. Choose **Full Mix** to play along with the complete recording, or select another available audio option.
+4. When **Done! Feedpak saved to:** appears, find the file at the path shown and import it into fee[dB]ack.
+
+The `.feedpak` contains the backing audio and the song's guitar and bass parts.
+It carries over supported playing techniques, including bends, slides,
+hammer-ons, pull-offs, vibrato, and palm mutes. It also includes fret positions
+to guide the camera as you play.
+
+Audio is required for a `.feedpak` file. If you choose **Skip audio**, the app
+cancels that export.
+
+### Finding your file
+
+The app shows the full save location when it finishes. Existing `.feedpak`
+files are kept: move or rename an earlier export before creating another
+with the same name.
+
+If an export fails, details are saved in `feedpak-export.log` in the folder
+where the app is running. Include that log when reporting a problem.
 
 ## What It Does
 
@@ -76,7 +101,7 @@ Songsterr has timing data that maps each measure of a song's tab to a specific t
 2. Downloads the corresponding YouTube audio via `yt-dlp`
 3. Embeds the audio and SyncPoint automations into the Guitar Pro file
 
-The result is a `.gp` file you can open in Guitar Pro with a synced backing track.
+The result is a `.gp` file you can open in Guitar Pro with a synced backing track. You can also choose `.feedpak` output to package the guitar and bass parts with backing audio for fee[dB]ack.
 
 ## Development Setup
 
@@ -85,10 +110,22 @@ If you want to run from source instead of the pre-built executable:
 ### Prerequisites
 
 - **Python 3.10+**
-- **[ffmpeg](https://ffmpeg.org/)** -- for audio conversion
-- **[Deno 2.3+](https://deno.com/)** -- for YouTube JavaScript challenges; must be available on your PATH when running from source. Release builds bundle the runtime.
+- **[ffmpeg and ffprobe](https://ffmpeg.org/)** -- for audio conversion and duration detection
+- **[Deno 2.3+](https://deno.com/)** -- for YouTube JavaScript challenges; must be available on your PATH when running from source. Release builds bundle Deno, FFmpeg, and FFprobe.
 
-### Installation
+### Windows installation
+
+Clone the repository, then create an environment and install the dependencies:
+
+```powershell
+git clone https://github.com/teaqu/guitar-pro-youtube-sync.git
+cd guitar-pro-youtube-sync
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
+```
+
+### macOS / Linux installation
 
 ```bash
 git clone https://github.com/teaqu/guitar-pro-youtube-sync.git
