@@ -128,8 +128,9 @@ def run_self_test(live: bool = False):
                 assert [note["t"] for note in chart["notes"]] == [0.0, 0.5, 1.0, 1.5]
                 assert chart["anchors"]
                 assert archive.read(manifest["song_timeline"])
-                stem = folder / "feedpak.ogg"
-                stem.write_bytes(archive.read("stems/full.ogg"))
+                stem_file = manifest["stems"][0]["file"]
+                stem = folder / Path(stem_file).name
+                stem.write_bytes(archive.read(stem_file))
             info = json.loads(_run([probe, "-v", "error", "-show_entries", "format=duration", "-of", "json", str(stem)]))
             assert abs(float(info["format"]["duration"]) - 2.0) < 0.2
             print("Validated feedpak with audio, timeline, notes, and camera anchors")

@@ -50,6 +50,7 @@ jobs:
     if: github.event_name != 'schedule'
     timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -228,7 +229,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Select release version
         id: version
@@ -241,7 +242,7 @@ jobs:
             version=$(tr -d '\r\n' < VERSION)
             [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
             previous=$(git show HEAD^:VERSION 2>/dev/null | tr -d '\r\n' || true)
-            if [[ "$version" != "$previous" ]]; then
+            if [[ "$version" != "$previous" ]] || ! git rev-parse --verify "refs/tags/v$version" >/dev/null 2>&1; then
               echo "tag=v$version" >> "$GITHUB_OUTPUT"
               echo "publish=true" >> "$GITHUB_OUTPUT"
             fi

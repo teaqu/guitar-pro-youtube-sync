@@ -77,12 +77,19 @@ def export_feedpak(meta, tracks, points, audio, output, audio_offset=0):
         root = Path(tmp)
         (root / 'arrangements').mkdir()
         (root / 'stems').mkdir()
-        ogg = root / 'stems' / 'full.ogg'
-        if Path(audio).suffix.lower() == '.ogg' and not audio_offset:
+        keep_ogg = Path(audio).suffix.lower() == '.ogg' and not audio_offset
+        encoders = subprocess.run([_ffmpeg_bin(), '-hide_banner', '-encoders'], capture_output=True, text=True, check=True).stdout
+        vorbis = keep_ogg or 'libvorbis' in encoders
+        stem_file = 'stems/full.ogg' if vorbis else 'stems/full.wav'
+        ogg = root / stem_file
+        if keep_ogg:
             shutil.copyfile(audio, ogg)
         else:
-            subprocess.run([_ffmpeg_bin(), '-v', 'error', '-y', '-i', str(audio), '-ss', str(audio_offset), '-c:a', 'libvorbis', '-q:a', '5', str(ogg)], check=True)
-        # The source MP3 is trimmed by the caller. Read the exact encoded duration.
+            codec = ['-c:a', 'libvorbis', '-q:a', '5'] if vorbis else ['-c:a', 'pcm_s16le']
+            if not vorbis:
+                logger.info('Vorbis encoder unavailable; using baseline PCM WAV audio')
+            subprocess.run([_ffmpeg_bin(), '-v', 'error', '-y', '-i', str(audio), '-ss', str(audio_offset), *codec, str(ogg)], check=True)
+        # Read the exact duration of the packaged audio.
         ffmpeg = Path(_ffmpeg_bin())
         probe = str(ffmpeg.with_name('ffprobe.exe' if ffmpeg.name.lower().endswith('.exe') else 'ffprobe')) if ffmpeg.parent != Path('.') else 'ffprobe'
         result = subprocess.run([probe, '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', str(ogg)], capture_output=True, text=True, check=True)
@@ -150,7 +157,7 @@ def export_feedpak(meta, tracks, points, audio, output, audio_offset=0):
             if marker:
                 timeline['sections'].append({'time': start, 'name': marker.get('text', '') if isinstance(marker, dict) else str(marker)})
         (root / 'song_timeline.json').write_text(json.dumps(timeline, indent=2), encoding='utf-8')
-        manifest = {'feedpak_version': '1.19.0', 'title': meta.get('title') or 'Unknown', 'artist': meta.get('artist') or 'Unknown', 'duration': duration, 'song_timeline': 'song_timeline.json', 'arrangements': arrangements, 'stems': [{'id': 'full', 'file': 'stems/full.ogg', 'default': True}]}
+        manifest = {'feedpak_version': '1.19.0', 'title': meta.get('title') or 'Unknown', 'artist': meta.get('artist') or 'Unknown', 'duration': duration, 'song_timeline': 'song_timeline.json', 'arrangements': arrangements, 'stems': [{'id': 'full', 'file': stem_file, 'default': True}]}
         # JSON is valid YAML 1.2 and avoids a new runtime dependency.
         (root / 'manifest.yaml').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
         with zipfile.ZipFile(output, 'x', zipfile.ZIP_DEFLATED) as archive:

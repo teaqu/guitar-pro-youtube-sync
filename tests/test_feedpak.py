@@ -42,3 +42,32 @@ def test_slide_pull_off_harmonics_vibrato_and_palm_mute():
 def test_tie_after_rest_is_not_joined():
  notes=apply_techniques([event(0,7),event(2,7,{'tie':True})])
  assert len(notes)==2
+
+def test_export_without_vorbis_encoder_uses_readable_wav(tmp_path, monkeypatch):
+ import json
+ import shutil
+ import subprocess
+ import wave
+ import zipfile
+ import feedpak
+ if not shutil.which('ffmpeg') or not shutil.which('ffprobe'):
+  pytest.skip('FFmpeg tools are covered by the packaged self-test')
+ source=tmp_path/'source.wav'
+ with wave.open(str(source),'wb') as audio:
+  audio.setparams((1,2,8000,0,'NONE','not compressed'))
+  audio.writeframes(b'\0\0'*8000)
+ original=subprocess.run
+ def without_vorbis(args, **kwargs):
+  if '-encoders' in args:
+   return subprocess.CompletedProcess(args,0,stdout='pcm_s16le',stderr='')
+  return original(args,**kwargs)
+ monkeypatch.setattr(feedpak.subprocess,'run',without_vorbis)
+ track={'instrument':'Steel Guitar','tuning':[64,59,55,50,45,40], 'measures':[{'voices':[{'beats':[{'duration':[1,4], 'notes':[{'string':0,'fret':3}]}]}]}]}
+ output=feedpak.export_feedpak({'artist':'Test','title':'WAV fallback'},[track],[0,1],source,tmp_path/'test.feedpak')
+ with zipfile.ZipFile(output) as archive:
+  manifest=json.loads(archive.read('manifest.yaml'))
+  stem=manifest['stems'][0]['file']
+  assert stem=='stems/full.wav'
+  import io
+  with wave.open(io.BytesIO(archive.read(stem))) as audio:
+   assert audio.getnframes()/audio.getframerate()==pytest.approx(1)
