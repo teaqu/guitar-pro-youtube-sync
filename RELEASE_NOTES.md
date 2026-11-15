@@ -5,5 +5,6 @@
 - Add regressions using the reported Faint example and validate mixed dead/normal chords in the packaged-app self-test.
 - Verify feedpak exports preserve individual dead strings, timing, and sustain while keeping palm mutes separate.
 - Fix CDN discovery after Songsterr renames minified variables, and refresh stale live-test metadata assumptions.
+- Repair Linux builds by downloading and verifying the static FFmpeg distribution directly.
 
 Executable filenames are unchanged.

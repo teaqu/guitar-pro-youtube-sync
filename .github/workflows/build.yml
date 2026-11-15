@@ -95,8 +95,12 @@ jobs:
           cp "$(which deno)" "deno_bin/deno${{ matrix.ffmpeg_ext }}"
           "deno_bin/deno${{ matrix.ffmpeg_ext }}" --version
 
-      - name: Set up FFmpeg (Linux/Windows)
-        if: runner.os != 'macOS'
+      - name: Set up FFmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: bash scripts/setup_ffmpeg_linux.sh
+
+      - name: Set up FFmpeg (Windows)
+        if: runner.os == 'Windows'
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
           ffmpeg-version: release
@@ -196,8 +200,12 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Set up FFmpeg (Linux/Windows)
-        if: runner.os != 'macOS'
+      - name: Set up FFmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: bash scripts/setup_ffmpeg_linux.sh
+
+      - name: Set up FFmpeg (Windows)
+        if: runner.os == 'Windows'
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
           ffmpeg-version: release
