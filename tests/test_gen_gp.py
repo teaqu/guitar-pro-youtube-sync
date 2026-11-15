@@ -1859,6 +1859,15 @@ class TestDiscoverCdnConfig:
             stage, _, _ = gen_gp._discover_cdn_config()
         assert stage == "d3d3l6a6rcgkaf"
 
+    def test_parses_renamed_vendor_variables(self):
+        vendor = self.SAMPLE_VENDOR_JS.replace("Ke", "kt").replace("qe", "At").replace("Je", "jt").replace("Ye", "Mt")
+        responses = [self._page_200(), self._app_resp(), self._vendor_resp(vendor)]
+        with patch("gen_gp.requests.get", side_effect=responses):
+            stage, current, legacy = gen_gp._discover_cdn_config()
+        assert stage == gen_gp._CDN_STAGE
+        assert current == gen_gp._CDN_LIST
+        assert legacy == gen_gp._CDN_LEGACY
+
     def test_parses_stage_cdn_via_103_page(self):
         import gen_gp
         responses = [self._page_103(), self._app_resp(), self._vendor_resp()]

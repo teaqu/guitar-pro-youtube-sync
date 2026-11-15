@@ -226,9 +226,9 @@ DRUM_MIDI_TO_ART = {
     29: 91, 30: 92, 33: 93, 34: 94,
 }
 
-# CDN routing mirrors Songsterr's vendor JS (Xe/Ye/Je/Ke/qe).
-# Image hashes ending in "-stage" always use the stage CDN (Je).
-# Others rotate through CDN_LIST (Ke) on retry; legacy (no image) use CDN_LEGACY (qe).
+# CDN routing mirrors Songsterr's vendor JS.
+# Image hashes ending in "-stage" always use the stage CDN.
+# Others rotate through CDN_LIST on retry; legacy (no image) use CDN_LEGACY.
 _CDN_STAGE = "d3d3l6a6rcgkaf"
 _CDN_LIST = ["dqsljvtekg760", "d34shlm8p2ums2", "d3cqchs6g3b5ew"]
 _CDN_LEGACY = ["d3rrfvx08uyjp1", "dodkcbujl0ebx", "dj1usja78sinh"]
@@ -269,16 +269,19 @@ def _discover_cdn_config() -> tuple[str, list[str], list[str]]:
     vendor_url = f"{static_base}/{vendor_name.group(1).lstrip('./')}"
     vendor_js = requests.get(vendor_url, headers=SONGSTERR_HEADERS, timeout=30).text
 
-    # Je=`<stage_cdn>`;function Ye(e){return e.endsWith(`-stage`)}
-    stage = _re.search(r'Je=`([a-z0-9]+)`', vendor_js)
-    # Ke=[`a`,`b`,`c`]
-    ke = _re.search(r'Ke=\[([^\]]+)\]', vendor_js)
-    # ,qe=[`a`,`b`,`c`]
-    qe = _re.search(r',qe=\[([^\]]+)\]', vendor_js)
-    if not (stage and ke and qe):
+    # Match the routing config's structure, not minified variable names, which
+    # change between deployments: current hosts, legacy hosts, stage host,
+    # followed by the -stage image predicate.
+    identifier = r'[\w$]+'
+    hosts = r'(`[a-z0-9]+`(?:,`[a-z0-9]+`)*)'
+    config = _re.search(
+        rf'{identifier}=\[{hosts}\],{identifier}=\[{hosts}\],'
+        rf'{identifier}=`([a-z0-9]+)`;function {identifier}\({identifier}\)'
+        rf'\{{return {identifier}\.endsWith\(`-stage`\)\}}', vendor_js)
+    if not config:
         raise ValueError("Could not parse CDN config from vendor bundle")
     parse_list = lambda s: _re.findall(r'`([^`]+)`', s)
-    return stage.group(1), parse_list(ke.group(1)), parse_list(qe.group(1))
+    return config.group(3), parse_list(config.group(1)), parse_list(config.group(2))
 
 
 def _cdn_for_image(image: str | None, attempt: int = 0) -> str:
@@ -684,6 +687,7 @@ class GPIFBuilder:
             "tie_origin": False, "tie_destination": note_data.get("tie", False),
             "hopo_origin": False, "hopo_destination": note_data.get("hp", False),
             "bend": note_data.get("bend"), "slide": note_data.get("slide"),
+            "dead": note_data.get("dead", False),
             "ghost": note_data.get("ghost", False), "staccato": note_data.get("staccato", False),
             "accentuated": note_data.get("accentuated"),
             "let_ring": let_ring, "vibrato": note_data.get("vibrato", False),
@@ -715,6 +719,11 @@ class GPIFBuilder:
         props.append(f'  <Property name="Fret"><Fret>{obj["fret"]}</Fret></Property>')
         props.append(f'  <Property name="String"><String>{string_val}</String></Property>')
         props.append(f'  <Property name="TransposedPitch">{pitch_xml}</Property>')
+
+        # Songsterr marks individual dead strings with dead=true, even in chords.
+        # GPIF uses Muted/Enable for X noteheads (separate from palm/ghost notes).
+        if obj.get("dead"):
+            props.append('  <Property name="Muted"><Enable/></Property>')
 
         if obj.get("bend"):
             bend = obj["bend"]
@@ -925,6 +934,7 @@ class GPIFBuilder:
             obj.get("tie_origin", False), obj.get("tie_destination", False),
             obj.get("hopo_origin", False), obj.get("hopo_destination", False),
             bend_sig, obj.get("slide"), obj.get("ghost", False),
+            obj.get("dead", False),
             obj.get("staccato", False), obj.get("accentuated"),
             obj.get("let_ring", False), obj.get("vibrato", False),
         )

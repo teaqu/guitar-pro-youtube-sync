@@ -47,7 +47,7 @@ class TestSongsterrAPI:
         assert "title" in meta
         assert "image" in meta
         assert meta["artist"] == "Gary Moore"
-        assert meta["title"] == "Parisienne Walkways"
+        assert meta["title"].startswith("Parisienne Walkways")
 
     def test_fetch_video_points(self):
         """Test fetching video points from Songsterr"""
@@ -92,6 +92,11 @@ class TestSongsterrAPI:
 class TestCdnRouting:
     """Integration tests for CDN discovery and track fetching."""
 
+    # Pin the historical stage revision: current metadata now uses production.
+    STAGE_SONG = 753932
+    STAGE_REVISION = 6042038
+    STAGE_IMAGE = "v0-3-2-uYO17mYkJ-yFk4C1-stage"
+
     def test_discover_cdn_config_returns_non_empty_lists(self):
         stage, cdn_list, legacy = gen_gp._discover_cdn_config()
         assert isinstance(stage, str) and len(stage) > 0
@@ -101,18 +106,14 @@ class TestCdnRouting:
     def test_discover_cdn_config_stage_cdn_serves_stage_tracks(self):
         """Stage CDN from vendor bundle must actually serve -stage image tracks."""
         stage, _, _ = gen_gp._discover_cdn_config()
-        meta = gen_gp.fetch_song_meta(753932)  # Chezile - Beanie (has -stage image)
-        assert meta["image"].endswith("-stage"), "Test song must have -stage image hash"
         import requests
-        url = f"https://{stage}.cloudfront.net/{meta['songId']}/{meta['revisionId']}/{meta['image']}/0.json"
+        url = f"https://{stage}.cloudfront.net/{self.STAGE_SONG}/{self.STAGE_REVISION}/{self.STAGE_IMAGE}/0.json"
         resp = requests.head(url, timeout=10)
         assert resp.status_code == 200, f"Stage CDN {stage} returned {resp.status_code} for {url}"
 
     def test_fetch_track_json_stage_image(self):
         """fetch_track_json succeeds for a song with a -stage image hash."""
-        meta = gen_gp.fetch_song_meta(753932)  # Chezile - Beanie
-        assert meta["image"].endswith("-stage")
-        data = gen_gp.fetch_track_json(meta["songId"], meta["revisionId"], meta["image"], 0)
+        data = gen_gp.fetch_track_json(self.STAGE_SONG, self.STAGE_REVISION, self.STAGE_IMAGE, 0)
         assert "measures" in data
         assert len(data["measures"]) > 0
 
@@ -124,6 +125,25 @@ class TestCdnRouting:
         data = gen_gp.fetch_track_json(meta["songId"], meta["revisionId"], image, 0)
         assert "measures" in data
         assert len(data["measures"]) > 0
+
+    @pytest.mark.parametrize("attempt", [0, 1, 2])
+    @pytest.mark.parametrize("image", [None, "v0-3-2-L8A5yHif6uyGJvBQ"])
+    def test_older_revision_on_each_legacy_and_production_host(self, attempt, image):
+        import requests
+        from utils import SONGSTERR_HEADERS
+        stage, current, legacy = gen_gp._discover_cdn_config()
+        host = (current if image else legacy)[attempt]
+        path = f"23063/5881803/{image}/0.json" if image else "part/5881803/0"
+        response = requests.get(f"https://{host}.cloudfront.net/{path}",
+                                headers=SONGSTERR_HEADERS, timeout=30)
+        response.raise_for_status()
+        assert response.json()["measures"]
+
+    @pytest.mark.parametrize("song_id", [502, 61178, 23152, 753932])
+    def test_current_tracks_across_sample_songs(self, song_id):
+        meta = gen_gp.fetch_song_meta(song_id)
+        data = gen_gp.fetch_track_json(song_id, meta["revisionId"], meta.get("image"), 0)
+        assert data["measures"]
 
     def test_cdn_list_in_hardcoded_defaults(self):
         """Scraped CDN config stage value must match our hardcoded default."""

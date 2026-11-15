@@ -71,3 +71,42 @@ def test_export_without_vorbis_encoder_uses_readable_wav(tmp_path, monkeypatch):
   import io
   with wave.open(io.BytesIO(archive.read(stem))) as audio:
    assert audio.getnframes()/audio.getframerate()==pytest.approx(1)
+
+
+def test_export_preserves_dead_strings_and_separate_palm_mutes(tmp_path):
+ import json
+ import shutil
+ import wave
+ import zipfile
+ from pathlib import Path
+ from feedpak import export_feedpak
+ if not shutil.which('ffmpeg') or not shutil.which('ffprobe'):
+  pytest.skip('FFmpeg tools are covered by the packaged self-test')
+ source=tmp_path/'source.wav'
+ with wave.open(str(source),'wb') as audio:
+  audio.setparams((1,2,8000,0,'NONE','not compressed'))
+  audio.writeframes(b'\0\0'*16000)
+ faint=json.loads((Path(__file__).parent/'fixtures/faint-dead-beat.json').read_text())
+ beats=[
+  {'type':8,'duration':[1,8],'notes':[{'fret':7,'string':3,'dead':True}]},
+  faint,
+  {'type':4,'duration':[1,4],'notes':[{'fret':7,'string':3}]},
+  {'type':4,'duration':[1,4],'palmMute':True,'notes':[{'fret':7,'string':3}]},
+  {'type':8,'duration':[1,8],'notes':[{'fret':7,'string':3,'ghost':True}]},
+  {'type':8,'duration':[1,8],'rest':True,'notes':[{'rest':True}]},
+ ]
+ track={'name':'Faint regression','instrument':'Distortion Guitar','tuning':[64,59,55,50,45,40],
+        'measures':[{'signature':[4,4],'voices':[{'beats':beats}]}]}
+ output=export_feedpak({'artist':'Test','title':'Dead strings'},[track],[0,2],source,tmp_path/'test.feedpak')
+ with zipfile.ZipFile(output) as archive:
+  manifest=json.loads(archive.read('manifest.yaml'))
+  notes=json.loads(archive.read(manifest['arrangements'][0]['file']))['notes']
+ assert [(n['t'],n['s'],n['f'],n['sus'],n.get('mt',False),n.get('pm',False)) for n in notes]==[
+  (0,2,7,0.25,True,False),
+  (0.25,1,5,0.25,False,False),
+  (0.25,2,7,0.25,True,False),
+  (0.25,3,7,0.25,False,False),
+  (0.5,2,7,0.5,False,False),
+  (1,2,7,0.5,False,True),
+  (1.5,2,7,0.25,False,False),
+ ]

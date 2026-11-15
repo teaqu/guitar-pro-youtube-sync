@@ -1,0 +1,24 @@
+{
+  "notes": [
+    {
+      "fret": 7,
+      "string": 2
+    },
+    {
+      "fret": 7,
+      "string": 3,
+      "dead": true
+    },
+    {
+      "fret": 5,
+      "string": 4
+    }
+  ],
+  "velocity": "f",
+  "type": 8,
+  "duration": [
+    1,
+    8
+  ],
+  "beamStart": true
+}

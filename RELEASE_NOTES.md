@@ -1,14 +1,9 @@
-## New
+## v1.2.1
 
-- Choose Guitar Pro or `.feedpak` output after entering a Songsterr link.
-- Create `.feedpak` files with guitar and bass parts, backing audio, and fret positions for camera movement.
-- Preserve repeat sections, alternate endings, tied sustains, bend curves, hammer-ons, pull-offs, and supported slides and other playing techniques.
-
-## Fixes and improvements
-
-- Use Songsterr duration fractions directly so dotted notes and tuplets stay aligned.
-- Trim feedpak audio after decoding for accurate start offsets.
-- Save conversion details in `feedpak-export.log`.
-- Add feedpak export checks to the packaged-app self-test and update the README.
+- Fix exported Guitar Pro dead notes displaying as ordinary fretted notes (#5). Songsterr's per-note `dead` marking now produces Guitar Pro X noteheads, including individual dead strings within mixed chords, while preserving string positions and rhythms.
+- Keep dead notes distinct from ordinary notes during deduplication, and from palm muting, rests, and ghost notes.
+- Add regressions using the reported Faint example and validate mixed dead/normal chords in the packaged-app self-test.
+- Verify feedpak exports preserve individual dead strings, timing, and sustain while keeping palm mutes separate.
+- Fix CDN discovery after Songsterr renames minified variables, and refresh stale live-test metadata assumptions.
 
 Executable filenames are unchanged.

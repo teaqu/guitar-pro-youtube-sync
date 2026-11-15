@@ -98,7 +98,8 @@ def run_self_test(live: bool = False):
             tracks = [{"name": "Test guitar", "instrumentId": 25, "instrument": "Steel Guitar", "strings": 6,
                        "tuning": [64, 59, 55, 50, 45, 40],
                        "measures": [{"voices": [{"beats": [
-                           {"type": 4, "notes": [{"fret": 0, "string": 0}]}
+                           {"type": 4, "notes": [{"fret": 0, "string": 0},
+                                                  {"fret": 0, "string": 1, "dead": True}]}
                            for _ in range(4)]}]}]}]
             gen_gp.generate_gp(tracks, gp, {"artist": "Self test", "title": "Local audio"})
             with wave.open(str(folder / "source.wav"), "wb") as wav:
@@ -119,13 +120,22 @@ def run_self_test(live: bool = False):
         sync_gp_file(gp, points, output, mp3_path=audio)
         _validate_output(output, audio, probe, expected_duration=None if live else 2.0)
         if not live:
+            with ZipFile(output) as archive:
+                root = ET.fromstring(archive.read("Content/score.gpif"))
+                notes = root.findall("Notes/Note")
+                assert len(notes) == 2
+                assert [n.find('Properties/Property[@name="Muted"]/Enable') is not None
+                        for n in notes] == [False, True]
+            print("Validated individual dead strings in GPIF")
             from feedpak import export_feedpak
             package = folder / "test.feedpak"
             export_feedpak({"artist": "Self test", "title": "Feedpak"}, tracks, points, audio, package)
             with ZipFile(package) as archive:
                 manifest = json.loads(archive.read("manifest.yaml"))
                 chart = json.loads(archive.read(manifest["arrangements"][0]["file"]))
-                assert [note["t"] for note in chart["notes"]] == [0.0, 0.5, 1.0, 1.5]
+                assert [note["t"] for note in chart["notes"]] == [0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.5, 1.5]
+                assert [note.get("mt", False) for note in chart["notes"]] == [True, False] * 4
+                assert not any(note.get("pm") for note in chart["notes"])
                 assert chart["anchors"]
                 assert archive.read(manifest["song_timeline"])
                 stem_file = manifest["stems"][0]["file"]
