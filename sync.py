@@ -561,6 +561,7 @@ Examples:
   python sync.py --song https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063
   python sync.py --song 23063 --list-videos
   python sync.py --song 23063 --cookies chrome
+  python sync.py --song 23063 --raw
         """,
     )
     parser.add_argument("--song", type=str, required=True,
@@ -573,6 +574,8 @@ Examples:
                         help="Browser to extract cookies from (chrome, firefox, safari, edge, etc.)")
     parser.add_argument("--list-videos", action="store_true",
                         help="List available video entries and exit")
+    parser.add_argument("--raw", action="store_true",
+                        help="Also save the untrimmed audio and a sync JSON next to the GP file")
 
     args = parser.parse_args()
 
@@ -631,11 +634,29 @@ Examples:
     print("\n[4/5] Downloading YouTube audio...")
     audio_path = gp_dir / ".tmp_audio.mp3"
     trim_start = points[0] if points else 0.0
+    raw_audio = gp_dir / f"{gp_file.stem}_raw.mp3" if args.raw else None
     try:
-        download_youtube_audio(video_id, audio_path, trim_start=trim_start, cookies_browser=args.cookies)
+        if raw_audio:
+            download_youtube_audio(video_id, raw_audio, cookies_browser=args.cookies)
+            subprocess.run([_ffmpeg_bin(), "-y", "-ss", str(trim_start), "-i", str(raw_audio),
+                            "-c", "copy", str(audio_path)], check=True, capture_output=True)
+        else:
+            download_youtube_audio(video_id, audio_path, trim_start=trim_start, cookies_browser=args.cookies)
     except Exception as e:
         print(f"  WARNING: Audio download failed: {e}")
         print("  Continuing without audio...")
+
+    if args.raw:
+        categories = {}
+        for e in entries:
+            feature = e.get("feature")
+            if feature is None or e.get("status") != "done" or not e.get("points"):
+                continue
+            items = categories.setdefault(feature, [])
+            if all(i["videoId"] != e["videoId"] for i in items):
+                items.append({"videoId": e["videoId"], "tracks": e.get("tracks"), "points": e["points"]})
+        (gp_dir / f"{gp_file.stem}_sync.json").write_text(json.dumps(
+            {"videoId": video_id, "revisionId": revision_id, "points": points, "categories": categories}, indent=2))
 
     # Step 5: Sync GP file
     print("\n[5/5] Syncing GP file...")

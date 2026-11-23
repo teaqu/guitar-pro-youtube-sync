@@ -617,5 +617,41 @@ class TestSongsterrRequestHeaders:
         assert "python-requests" not in headers["User-Agent"].lower()
 
 
+class TestRaw:
+    ENTRIES = [
+        {"videoId": "AAA", "points": [1.5, 3.5], "feature": None, "status": "done"},
+        {"videoId": "BBB", "points": [2.0, 4.0], "feature": "backing", "status": "done", "tracks": [0]},
+        {"videoId": "CCC", "points": [2.5, 4.5], "feature": "solo", "status": "done", "tracks": [2, 3]},
+    ]
+
+    def test_raw_downloads_once_and_writes_sync_json(self, tmp_path, monkeypatch):
+        import json
+        import sync
+        monkeypatch.chdir(tmp_path)
+        argv = ["sync.py", "--song", "7", "--raw"]
+        with patch.object(sys, "argv", argv), \
+             patch.object(sync, "fetch_song_meta", return_value={"artist": "A", "title": "T", "revisionId": 9}), \
+             patch.object(sync, "fetch_video_points", return_value=self.ENTRIES), \
+             patch.object(sync.gen_gp, "fetch_all_tracks", return_value=({}, [])), \
+             patch.object(sync.gen_gp, "generate_gp", side_effect=lambda t, p, m: p.write_bytes(b"gp")), \
+             patch.object(sync, "sync_gp_file", return_value=[]), \
+             patch.object(sync, "print_summary"), \
+             patch.object(sync, "_ffmpeg_bin", return_value="ffmpeg"), \
+             patch.object(sync.subprocess, "run",
+                          side_effect=lambda cmd, **kw: Path(cmd[-1]).write_bytes(b"mp3")) as ffmpeg, \
+             patch.object(sync, "download_youtube_audio",
+                          side_effect=lambda vid, path, **kw: path.write_bytes(b"mp3")) as dl:
+            sync.main()
+        assert dl.call_count == 1
+        assert dl.call_args.args == ("AAA", tmp_path / "A - T_raw.mp3")
+        cmd = ffmpeg.call_args.args[0]
+        assert cmd[cmd.index("-ss") + 1] == "1.5"
+        assert json.loads((tmp_path / "A - T_sync.json").read_text()) == {
+            "videoId": "AAA", "revisionId": 9, "points": [1.5, 3.5],
+            "categories": {
+                "backing": [{"videoId": "BBB", "tracks": [0], "points": [2.0, 4.0]}],
+                "solo": [{"videoId": "CCC", "tracks": [2, 3], "points": [2.5, 4.5]}]}}
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

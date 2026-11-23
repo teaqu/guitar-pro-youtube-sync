@@ -171,6 +171,14 @@ This generates `Gary Moore - Parisienne Walkways.gp` and outputs a `Gary Moore -
 python sync.py --song 23063 --gp-file my-tab.gp
 ```
 
+### Raw audio and bar times
+
+```bash
+python sync.py --song 23063 --raw
+```
+
+Also writes the untrimmed audio (`<name>_raw.mp3`) and `<name>_sync.json` (`videoId`, `revisionId`, `points`, and `categories`: every other video Songsterr lists, grouped by its feature such as backing, solo or alternative) next to the GP file.
+
 ### List available videos
 
 Some songs have multiple video sources (original, alternative, backing track). List them to pick the best one:
