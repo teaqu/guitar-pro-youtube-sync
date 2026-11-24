@@ -171,21 +171,6 @@ This generates `Gary Moore - Parisienne Walkways.gp` and outputs a `Gary Moore -
 python sync.py --song 23063 --gp-file my-tab.gp
 ```
 
-### Raw audio and bar times
-
-```bash
-python sync.py --song 23063 --raw
-```
-
-Also writes the untrimmed audio (`<name>_raw.mp3`) and `<name>_sync.json` next to the GP file. The JSON contains:
-
-- `videoId`, `revisionId`, `artist` and `title`
-- `defaultTrack` and `popularTrackGuitar`: the track the player opens on
-- `points`: the bar times of the main video
-- `categories`: every other video Songsterr lists, grouped by feature (such as backing, solo or alternative)
-
-Each video in `categories` has `tracks`. A backing video is the mix without those tracks, so it also has `without` (for example `["guitar"]`). A solo video is about those tracks, so it has `only`.
-
 ### List available videos
 
 Some songs have multiple video sources (original, alternative, backing track). List them to pick the best one:
@@ -219,6 +204,14 @@ If you don't want the audio you can also use use `gen_gp.py` directly to generat
 python gen_gp.py --song 23063
 python gen_gp.py --song 23063 -o output.gp
 ```
+
+### Raw audio and sync points
+
+```bash
+python sync.py --song 23063 --raw
+```
+
+Also writes the original untrimmed audio as `<name>_raw.mp3` and video sync points as `<name>_sync.json`.
 
 ### Example output
 
