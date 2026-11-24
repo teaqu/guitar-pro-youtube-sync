@@ -630,7 +630,10 @@ class TestRaw:
         monkeypatch.chdir(tmp_path)
         argv = ["sync.py", "--song", "7", "--raw"]
         with patch.object(sys, "argv", argv), \
-             patch.object(sync, "fetch_song_meta", return_value={"artist": "A", "title": "T", "revisionId": 9}), \
+             patch.object(sync, "fetch_song_meta", return_value={"artist": "A", "title": "T", "revisionId": 9,
+                                                                       "defaultTrack": 2, "popularTrackGuitar": 3,
+                                                                       "tracks": [{"hash": "vocals_a"}, {"hash": "bass_b"},
+                                                                                  {"hash": "guitar_c"}, {"hash": "guitar_d"}]}), \
              patch.object(sync, "fetch_video_points", return_value=self.ENTRIES), \
              patch.object(sync.gen_gp, "fetch_all_tracks", return_value=({}, [])), \
              patch.object(sync.gen_gp, "generate_gp", side_effect=lambda t, p, m: p.write_bytes(b"gp")), \
@@ -647,10 +650,54 @@ class TestRaw:
         cmd = ffmpeg.call_args.args[0]
         assert cmd[cmd.index("-ss") + 1] == "1.5"
         assert json.loads((tmp_path / "A - T_sync.json").read_text()) == {
-            "videoId": "AAA", "revisionId": 9, "points": [1.5, 3.5],
+            "videoId": "AAA", "revisionId": 9, "artist": "A", "title": "T",
+            "defaultTrack": 2, "popularTrackGuitar": 3, "points": [1.5, 3.5],
             "categories": {
-                "backing": [{"videoId": "BBB", "tracks": [0], "points": [2.0, 4.0]}],
-                "solo": [{"videoId": "CCC", "tracks": [2, 3], "points": [2.5, 4.5]}]}}
+                "backing": [{"videoId": "BBB", "tracks": [0], "without": ["vocals"], "points": [2.0, 4.0]}],
+                "solo": [{"videoId": "CCC", "tracks": [2, 3], "only": ["guitar"], "points": [2.5, 4.5]}]}}
+
+
+    def test_sync_data_has_no_default_track_when_the_song_has_none(self):
+        from sync import build_raw_sync_data
+        data = build_raw_sync_data({"artist": "A", "title": "T", "revisionId": 9}, self.ENTRIES, "AAA", [1.5, 3.5])
+        assert data["defaultTrack"] is None and data["popularTrackGuitar"] is None
+
+    def test_sync_data_skips_unfinished_and_pointless_entries_and_repeated_videos(self):
+        from sync import build_raw_sync_data
+        entries = self.ENTRIES + [
+            {"videoId": "BBB", "points": [9.0], "feature": "backing", "status": "done", "tracks": [1]},
+            {"videoId": "DDD", "points": [1.0], "feature": "backing", "status": "pending", "tracks": [1]},
+            {"videoId": "EEE", "points": [], "feature": "backing", "status": "done", "tracks": [1]},
+        ]
+        data = build_raw_sync_data({"artist": "A", "title": "T", "revisionId": 9}, entries, "AAA", [1.5, 3.5])
+        assert [i["videoId"] for i in data["categories"]["backing"]] == ["BBB"]
+
+    def test_instrument_keys_depend_on_the_feature(self):
+        from sync import build_raw_sync_data
+        meta = {"artist": "A", "title": "T", "revisionId": 9, "tracks": [{"hash": "drums_a"}, {"hash": "bass_b"}]}
+        entries = [
+            {"videoId": "AAA", "points": [1.0], "feature": None, "status": "done"},
+            {"videoId": "BBB", "points": [1.0], "feature": "backing", "status": "done", "tracks": [0]},
+            {"videoId": "CCC", "points": [1.0], "feature": "solo", "status": "done", "tracks": [1]},
+            {"videoId": "DDD", "points": [1.0], "feature": "playthrough", "status": "done", "tracks": [1]},
+        ]
+        cats = build_raw_sync_data(meta, entries, "AAA", [1.0])["categories"]
+        assert cats["backing"][0]["without"] == ["drums"] and "only" not in cats["backing"][0]
+        assert cats["solo"][0]["only"] == ["bass"] and "without" not in cats["solo"][0]
+        assert not {"without", "only"} & set(cats["playthrough"][0])
+
+
+    def test_instruments_come_from_the_tracks_then_from_the_hashes(self):
+        from sync import entry_instruments
+        meta = {"tracks": [{"hash": "vocals_a"}, {"hash": "drums_b"}, {"hash": "guitar_c"}, {"hash": "guitar_d"}]}
+        assert entry_instruments(meta, {"tracks": [2, 3]}) == ["guitar"]
+        assert entry_instruments(meta, {"tracks": [1, 2, 3]}) == ["drums", "guitar"]
+        # a stale hash next to a resolved track is ignored
+        assert entry_instruments(meta, {"tracks": [1], "trackHashes": ["drums_b", "guitar_old"]}) == ["drums"]
+        # no usable tracks: the entry's own hashes
+        assert entry_instruments(meta, {"tracks": None, "trackHashes": ["vocals_old"]}) == ["vocals"]
+        assert entry_instruments(meta, {"tracks": "All", "trackHashes": None}) == []
+        assert entry_instruments(meta, {"tracks": [99], "trackHashes": ["bass_x"]}) == ["bass"]
 
 
 if __name__ == "__main__":
