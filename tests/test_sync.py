@@ -656,7 +656,6 @@ class TestRaw:
                 "backing": [{"videoId": "BBB", "tracks": [0], "without": ["vocals"], "points": [2.0, 4.0]}],
                 "solo": [{"videoId": "CCC", "tracks": [2, 3], "only": ["guitar"], "points": [2.5, 4.5]}]}}
 
-
     def test_sync_data_has_no_default_track_when_the_song_has_none(self):
         from sync import build_raw_sync_data
         data = build_raw_sync_data({"artist": "A", "title": "T", "revisionId": 9}, self.ENTRIES, "AAA", [1.5, 3.5])
@@ -685,7 +684,6 @@ class TestRaw:
         assert cats["backing"][0]["without"] == ["drums"] and "only" not in cats["backing"][0]
         assert cats["solo"][0]["only"] == ["bass"] and "without" not in cats["solo"][0]
         assert not {"without", "only"} & set(cats["playthrough"][0])
-
 
     def test_instruments_come_from_the_tracks_then_from_the_hashes(self):
         from sync import entry_instruments

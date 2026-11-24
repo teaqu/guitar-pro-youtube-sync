@@ -115,9 +115,7 @@ def get_video_options(entries: list[dict], tracks_meta: list[dict] | None = None
 
 
 def entry_instruments(meta: dict, entry: dict) -> list[str]:
-    """The instrument families (drums, bass, guitar, vocals, other) a video's `tracks` cover, in order, such as ["guitar"]
-    for a backing track without the guitars. Read from the hashes of those tracks in the song's meta. An entry whose
-    `tracks` is missing or points at nothing falls back to its own `trackHashes`, which can name a track the song no longer has."""
+    """Instrument families (drums, bass, guitar, vocals, other) of an entry's tracks, falling back to its trackHashes."""
     meta_tracks = meta.get("tracks") or []
     tracks = entry.get("tracks")
     hashes = []
@@ -134,10 +132,7 @@ def entry_instruments(meta: dict, entry: dict) -> list[str]:
 
 
 def build_raw_sync_data(meta: dict, entries: list[dict], video_id: str, points: list[float]) -> dict:
-    """The data --raw saves next to the untrimmed audio: the song, the chosen video's bar times, and every finished
-    video with bar times grouped by feature. `defaultTrack` and `popularTrackGuitar` tell a reader which track the player
-    opens on, and so which backing video (the mix without its `tracks`) it shows. A backing entry also has `without` and a
-    solo entry `only`: the instrument families (drums, bass, guitar, vocals, other) of its tracks."""
+    """Data saved by --raw: song info, the chosen video's bar times, and every finished video grouped by feature."""
     categories: dict[str, list[dict]] = {}
     for e in entries:
         feature = e.get("feature")
@@ -146,8 +141,7 @@ def build_raw_sync_data(meta: dict, entries: list[dict], video_id: str, points: 
         items = categories.setdefault(feature, [])
         if all(i["videoId"] != e["videoId"] for i in items):
             item = {"videoId": e["videoId"], "tracks": e.get("tracks")}
-            # `tracks` means opposite things by feature: a backing video is the mix WITHOUT them, a solo video is ABOUT
-            # them. The instrument names get a key that says which, and only for those two features.
+            # backing = mix without these tracks, solo = about them
             if feature == "backing":
                 item["without"] = entry_instruments(meta, e)
             elif feature == "solo":

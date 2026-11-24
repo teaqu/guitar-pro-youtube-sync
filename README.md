@@ -177,7 +177,14 @@ python sync.py --song 23063 --gp-file my-tab.gp
 python sync.py --song 23063 --raw
 ```
 
-Also writes the untrimmed audio (`<name>_raw.mp3`) and `<name>_sync.json` next to the GP file. The JSON has `videoId`, `revisionId`, `artist`, `title`, `defaultTrack` and `popularTrackGuitar` (the track the player opens on), the main video's `points`, and `categories`: every other video Songsterr lists, grouped by its feature such as backing, solo or alternative. Each video has its `tracks`. A backing video is the mix without those tracks, so it also has `without` (for example `["guitar"]`); a solo video is about them, so it has `only`.
+Also writes the untrimmed audio (`<name>_raw.mp3`) and `<name>_sync.json` next to the GP file. The JSON contains:
+
+- `videoId`, `revisionId`, `artist` and `title`
+- `defaultTrack` and `popularTrackGuitar`: the track the player opens on
+- `points`: the bar times of the main video
+- `categories`: every other video Songsterr lists, grouped by feature (such as backing, solo or alternative)
+
+Each video in `categories` has `tracks`. A backing video is the mix without those tracks, so it also has `without` (for example `["guitar"]`). A solo video is about those tracks, so it has `only`.
 
 ### List available videos
 
