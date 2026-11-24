@@ -141,7 +141,6 @@ def build_raw_sync_data(meta: dict, entries: list[dict], video_id: str, points: 
         items = categories.setdefault(feature, [])
         if all(i["videoId"] != e["videoId"] for i in items):
             item = {"videoId": e["videoId"], "tracks": e.get("tracks")}
-            # backing = mix without these tracks, solo = about them
             if feature == "backing":
                 item["without"] = entry_instruments(meta, e)
             elif feature == "solo":
