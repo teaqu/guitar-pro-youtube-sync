@@ -114,6 +114,51 @@ def get_video_options(entries: list[dict], tracks_meta: list[dict] | None = None
     }
 
 
+def entry_instruments(meta: dict, entry: dict) -> list[str]:
+    """Instrument families (drums, bass, guitar, vocals, other) of an entry's tracks, falling back to its trackHashes."""
+    meta_tracks = meta.get("tracks") or []
+    tracks = entry.get("tracks")
+    hashes = []
+    if isinstance(tracks, list):
+        hashes = [meta_tracks[i].get("hash") for i in tracks if isinstance(i, int) and 0 <= i < len(meta_tracks)]
+    if not any(hashes):
+        hashes = entry.get("trackHashes") or []
+    families: list[str] = []
+    for h in hashes:
+        family = h.split("_")[0] if h else None
+        if family and family not in families:
+            families.append(family)
+    return families
+
+
+def build_raw_sync_data(meta: dict, entries: list[dict], video_id: str, points: list[float]) -> dict:
+    """Data saved by --raw: song info, the chosen video's bar times, and every finished video grouped by feature."""
+    categories: dict[str, list[dict]] = {}
+    for e in entries:
+        feature = e.get("feature")
+        if feature is None or e.get("status") != "done" or not e.get("points"):
+            continue
+        items = categories.setdefault(feature, [])
+        if all(i["videoId"] != e["videoId"] for i in items):
+            item = {"videoId": e["videoId"], "tracks": e.get("tracks")}
+            if feature == "backing":
+                item["without"] = entry_instruments(meta, e)
+            elif feature == "solo":
+                item["only"] = entry_instruments(meta, e)
+            item["points"] = e["points"]
+            items.append(item)
+    return {
+        "videoId": video_id,
+        "revisionId": meta["revisionId"],
+        "artist": meta["artist"],
+        "title": meta["title"],
+        "defaultTrack": meta.get("defaultTrack"),
+        "popularTrackGuitar": meta.get("popularTrackGuitar"),
+        "points": points,
+        "categories": categories,
+    }
+
+
 def select_video_entry(entries: list[dict], video_index: int | None = None) -> dict:
     """Select which video entry to use for timing (auto-select for CLI).
 
@@ -561,6 +606,7 @@ Examples:
   python sync.py --song https://www.songsterr.com/a/wsa/gary-moore-parisienne-walkways-tab-s23063
   python sync.py --song 23063 --list-videos
   python sync.py --song 23063 --cookies chrome
+  python sync.py --song 23063 --raw
         """,
     )
     parser.add_argument("--song", type=str, required=True,
@@ -573,6 +619,8 @@ Examples:
                         help="Browser to extract cookies from (chrome, firefox, safari, edge, etc.)")
     parser.add_argument("--list-videos", action="store_true",
                         help="List available video entries and exit")
+    parser.add_argument("--raw", action="store_true",
+                        help="Also save the untrimmed audio and a sync JSON next to the GP file")
 
     args = parser.parse_args()
 
@@ -631,11 +679,21 @@ Examples:
     print("\n[4/5] Downloading YouTube audio...")
     audio_path = gp_dir / ".tmp_audio.mp3"
     trim_start = points[0] if points else 0.0
+    raw_audio = gp_dir / f"{gp_file.stem}_raw.mp3" if args.raw else None
     try:
-        download_youtube_audio(video_id, audio_path, trim_start=trim_start, cookies_browser=args.cookies)
+        if raw_audio:
+            download_youtube_audio(video_id, raw_audio, cookies_browser=args.cookies)
+            subprocess.run([_ffmpeg_bin(), "-y", "-ss", str(trim_start), "-i", str(raw_audio),
+                            "-c", "copy", str(audio_path)], check=True, capture_output=True)
+        else:
+            download_youtube_audio(video_id, audio_path, trim_start=trim_start, cookies_browser=args.cookies)
     except Exception as e:
         print(f"  WARNING: Audio download failed: {e}")
         print("  Continuing without audio...")
+
+    if args.raw:
+        (gp_dir / f"{gp_file.stem}_sync.json").write_text(json.dumps(
+            build_raw_sync_data(meta, entries, video_id, points), indent=2))
 
     # Step 5: Sync GP file
     print("\n[5/5] Syncing GP file...")

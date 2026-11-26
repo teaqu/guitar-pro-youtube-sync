@@ -617,5 +617,87 @@ class TestSongsterrRequestHeaders:
         assert "python-requests" not in headers["User-Agent"].lower()
 
 
+class TestRaw:
+    ENTRIES = [
+        {"videoId": "AAA", "points": [1.5, 3.5], "feature": None, "status": "done"},
+        {"videoId": "BBB", "points": [2.0, 4.0], "feature": "backing", "status": "done", "tracks": [0]},
+        {"videoId": "CCC", "points": [2.5, 4.5], "feature": "solo", "status": "done", "tracks": [2, 3]},
+    ]
+    META = {"artist": "A", "title": "T", "revisionId": 9, "defaultTrack": 2, "popularTrackGuitar": 3,
+            "tracks": [{"hash": "vocals_a"}, {"hash": "bass_b"}, {"hash": "guitar_c"}, {"hash": "guitar_d"}]}
+
+    def test_raw_downloads_once_and_writes_sync_json(self, tmp_path, monkeypatch):
+        import json
+        import sync
+        monkeypatch.chdir(tmp_path)
+        argv = ["sync.py", "--song", "7", "--raw"]
+        with patch.object(sys, "argv", argv), \
+             patch.object(sync, "fetch_song_meta", return_value=self.META), \
+             patch.object(sync, "fetch_video_points", return_value=self.ENTRIES), \
+             patch.object(sync.gen_gp, "fetch_all_tracks", return_value=({}, [])), \
+             patch.object(sync.gen_gp, "generate_gp", side_effect=lambda t, p, m: p.write_bytes(b"gp")), \
+             patch.object(sync, "sync_gp_file", return_value=[]), \
+             patch.object(sync, "print_summary"), \
+             patch.object(sync, "_ffmpeg_bin", return_value="ffmpeg"), \
+             patch.object(sync.subprocess, "run",
+                          side_effect=lambda cmd, **kw: Path(cmd[-1]).write_bytes(b"mp3")) as ffmpeg, \
+             patch.object(sync, "download_youtube_audio",
+                          side_effect=lambda vid, path, **kw: path.write_bytes(b"mp3")) as dl:
+            sync.main()
+        assert dl.call_count == 1
+        assert dl.call_args.args == ("AAA", tmp_path / "A - T_raw.mp3")
+        cmd = ffmpeg.call_args.args[0]
+        assert cmd[cmd.index("-ss") + 1] == "1.5"
+        assert json.loads((tmp_path / "A - T_sync.json").read_text()) == {
+            "videoId": "AAA", "revisionId": 9, "artist": "A", "title": "T",
+            "defaultTrack": 2, "popularTrackGuitar": 3, "points": [1.5, 3.5],
+            "categories": {
+                "backing": [{"videoId": "BBB", "tracks": [0], "without": ["vocals"], "points": [2.0, 4.0]}],
+                "solo": [{"videoId": "CCC", "tracks": [2, 3], "only": ["guitar"], "points": [2.5, 4.5]}]}}
+
+    def test_sync_data_has_no_default_track_when_the_song_has_none(self):
+        from sync import build_raw_sync_data
+        data = build_raw_sync_data({"artist": "A", "title": "T", "revisionId": 9}, self.ENTRIES, "AAA", [1.5, 3.5])
+        assert data["defaultTrack"] is None and data["popularTrackGuitar"] is None
+
+    def test_sync_data_skips_unfinished_and_pointless_entries_and_repeated_videos(self):
+        from sync import build_raw_sync_data
+        entries = self.ENTRIES + [
+            {"videoId": "BBB", "points": [9.0], "feature": "backing", "status": "done", "tracks": [1]},
+            {"videoId": "DDD", "points": [1.0], "feature": "backing", "status": "pending", "tracks": [1]},
+            {"videoId": "EEE", "points": [], "feature": "backing", "status": "done", "tracks": [1]},
+        ]
+        data = build_raw_sync_data(self.META, entries, "AAA", [1.5, 3.5])
+        assert [i["videoId"] for i in data["categories"]["backing"]] == ["BBB"]
+
+    def test_instrument_keys_depend_on_the_feature(self):
+        from sync import build_raw_sync_data
+        entries = [
+            {"videoId": "AAA", "points": [1.0], "feature": None, "status": "done"},
+            {"videoId": "BBB", "points": [1.0], "feature": "backing", "status": "done", "tracks": [0]},
+            {"videoId": "CCC", "points": [1.0], "feature": "solo", "status": "done", "tracks": [1]},
+            {"videoId": "DDD", "points": [1.0], "feature": "playthrough", "status": "done", "tracks": [1]},
+        ]
+        cats = build_raw_sync_data(self.META, entries, "AAA", [1.0])["categories"]
+        assert cats["backing"][0]["without"] == ["vocals"] and "only" not in cats["backing"][0]
+        assert cats["solo"][0]["only"] == ["bass"] and "without" not in cats["solo"][0]
+        assert not {"without", "only"} & set(cats["playthrough"][0])
+
+    def test_instruments_come_from_the_tracks(self):
+        from sync import entry_instruments
+        assert entry_instruments(self.META, {"tracks": [2, 3]}) == ["guitar"]
+        assert entry_instruments(self.META, {"tracks": [0, 1, 2]}) == ["vocals", "bass", "guitar"]
+
+    def test_instruments_ignore_stale_hashes_next_to_resolved_tracks(self):
+        from sync import entry_instruments
+        assert entry_instruments(self.META, {"tracks": [1], "trackHashes": ["bass_b", "guitar_old"]}) == ["bass"]
+
+    def test_instruments_fall_back_to_the_entry_hashes(self):
+        from sync import entry_instruments
+        assert entry_instruments(self.META, {"tracks": None, "trackHashes": ["vocals_old"]}) == ["vocals"]
+        assert entry_instruments(self.META, {"tracks": [99], "trackHashes": ["drums_x"]}) == ["drums"]
+        assert entry_instruments(self.META, {"tracks": "All", "trackHashes": None}) == []
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
