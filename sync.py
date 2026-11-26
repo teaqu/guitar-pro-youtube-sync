@@ -374,7 +374,63 @@ def get_original_tempo(root: ET.Element) -> float:
     return 120.0
 
 
-def _build_automations_xml(original_tempo: float, bpms: list[float], points: list[float], embed_audio: bool) -> str:
+def playback_order(master_bars: ET.Element) -> list[int]:
+    """Visit written bars in performance order, including multi-bar endings."""
+    order = []
+    stack = []  # (opening bar, pass number) for each active repeat
+    starts = set()
+    unclosed = []
+    implicit_start = 0
+    for index, bar in enumerate(master_bars):
+        repeat = bar.find("Repeat")
+        if repeat is None:
+            continue
+        if repeat.get("start") == "true":
+            starts.add(index)
+            unclosed.append(index)
+        if repeat.get("end") == "true":
+            if unclosed:
+                unclosed.pop()
+            else:
+                starts.add(implicit_start)
+            implicit_start = index + 1
+    index = 0
+    endings = set()
+    completed_pass = 1
+    steps = 0
+    while index < len(master_bars):
+        steps += 1
+        if steps > max(100000, 128 * len(master_bars)):
+            raise ValueError("Repeat expansion exceeds the supported playback length")
+        bar = master_bars[index]
+        repeat = bar.find("Repeat")
+        if index in starts:
+            if not stack or stack[-1][0] != index:
+                stack.append((index, 1))
+            endings = set()
+        ending_text = bar.findtext("AlternateEndings")
+        if ending_text:
+            endings = {int(n) for n in ending_text.split()}
+        elif not stack:
+            endings = set()
+        current_pass = stack[-1][1] if stack else completed_pass
+        if not endings or current_pass in endings:
+            order.append(index)
+        if repeat is not None and repeat.get("end") == "true":
+            start, current_pass = stack.pop()
+            if current_pass < int(repeat.get("count", "2")):
+                stack.append((start, current_pass + 1))
+                endings = set()
+                index = start
+                continue
+            completed_pass = current_pass
+            endings = set()
+        index += 1
+    return order
+
+
+def _build_automations_xml(original_tempo: float, bpms: list[float], points: list[float], embed_audio: bool,
+                           order: list[int] | None = None) -> str:
     """Build the Automations XML block as a string."""
     lines = ["<Automations>"]
 
@@ -392,11 +448,17 @@ def _build_automations_xml(original_tempo: float, bpms: list[float], points: lis
     if embed_audio and points:
         bar0_time = points[0]
         prev_modified = None
+        occurrences = {}
         for i in range(min(len(bpms), len(points))):
+            bar = order[i] if order is not None else i
+            occurrence = occurrences.get(bar, 0)
+            occurrences[bar] = occurrence + 1
             modified_tempo = round(bpms[i], 5)
-            if prev_modified is not None and abs(modified_tempo - prev_modified) < 0.5:
+            if order is None and prev_modified is not None and abs(modified_tempo - prev_modified) < 0.5:
                 continue
             prev_modified = modified_tempo
+            # Guitar Pro indexes the outer Bar on the unfolded playback timeline.
+            # The inner BarIndex and BarOccurrence identify the printed measure.
             frame_offset = round((points[i] - bar0_time) * GP8_INTERNAL_SAMPLE_RATE)
             lines.append(f"""<Automation>
 <Type>SyncPoint</Type>
@@ -405,8 +467,8 @@ def _build_automations_xml(original_tempo: float, bpms: list[float], points: lis
 <Position>0</Position>
 <Visible>true</Visible>
 <Value>
-<BarIndex>{i}</BarIndex>
-<BarOccurrence>0</BarOccurrence>
+<BarIndex>{bar}</BarIndex>
+<BarOccurrence>{occurrence}</BarOccurrence>
 <ModifiedTempo>{modified_tempo}</ModifiedTempo>
 <OriginalTempo>{round(original_tempo)}</OriginalTempo>
 <FrameOffset>{frame_offset}</FrameOffset>
@@ -483,7 +545,8 @@ def sync_gp_file(gp_file: Path, points: list[float], output_path: Path, mp3_path
     print(f"  Measures: {num_measures}")
     print(f"  Time signatures: {', '.join(sorted(set(time_signatures)))}")
 
-    bpms = compute_bpms(time_signatures, points)
+    order = playback_order(master_bars)
+    bpms = compute_bpms([time_signatures[i] for i in order], points)
 
     # --- String-based XML modifications ---
     xml = xml_raw
@@ -500,7 +563,8 @@ def sync_gp_file(gp_file: Path, points: list[float], output_path: Path, mp3_path
         embedded_path = f"Content/Assets/{asset_id}.mp3"
         print(f"  Embedding audio: {mp3_path.name} ({len(mp3_data) / 1024 / 1024:.1f} MB)")
 
-    new_automations = _build_automations_xml(original_tempo, bpms, points, bool(has_audio))
+    repeat_order = order if order != list(range(num_measures)) else None
+    new_automations = _build_automations_xml(original_tempo, bpms, points, bool(has_audio), repeat_order)
     xml = re.sub(
         r'<Automations>.*?</Automations>',
         new_automations,

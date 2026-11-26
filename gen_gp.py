@@ -1397,6 +1397,16 @@ class GPIFBuilder:
             mb = ['<MasterBar>']
             mb.append('  <Key><AccidentalCount>0</AccidentalCount><Mode>Major</Mode><TransposeAs>Sharps</TransposeAs></Key>')
             mb.append(f'  <Time>{current_time_sig}</Time>')
+            repeat_start = measure.get("repeatStart", False)
+            repeat_count = measure.get("repeat", 0)
+            if repeat_start or repeat_count:
+                start = "true" if repeat_start else "false"
+                end = "true" if repeat_count else "false"
+                count = f' count="{int(repeat_count)}"' if repeat_count else ""
+                mb.append(f'  <Repeat start="{start}" end="{end}"{count}/>')
+            if measure.get("alternateEnding"):
+                endings = " ".join(str(int(n)) for n in measure["alternateEnding"])
+                mb.append(f'  <AlternateEndings>{endings}</AlternateEndings>')
             mb.append(f'  <Bars>{" ".join(str(b) for b in bar_ids_for_measure)}</Bars>')
 
             mb.append('  <XProperties>')
