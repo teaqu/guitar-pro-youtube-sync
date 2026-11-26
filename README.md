@@ -211,7 +211,7 @@ python gen_gp.py --song 23063 -o output.gp
 python sync.py --song 23063 --raw
 ```
 
-Also writes the original untrimmed audio as `<name>_raw.mp3` and video sync points as `<name>_sync.json`.
+Also writes the original untrimmed audio as `<name>_<video-id>_raw.mp3` and video sync points as `<name>_<video-id>_sync.json`.
 
 ### Example output
 

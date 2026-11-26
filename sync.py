@@ -20,6 +20,7 @@ import sys
 import uuid
 import zipfile
 from pathlib import Path
+from urllib.parse import quote
 from xml.etree import ElementTree as ET
 
 import requests
@@ -679,7 +680,8 @@ Examples:
     print("\n[4/5] Downloading YouTube audio...")
     audio_path = gp_dir / ".tmp_audio.mp3"
     trim_start = points[0] if points else 0.0
-    raw_audio = gp_dir / f"{gp_file.stem}_raw.mp3" if args.raw else None
+    raw_stem = f"{gp_file.stem}_{quote(video_id, safe='')}" if args.raw else None
+    raw_audio = gp_dir / f"{raw_stem}_raw.mp3" if args.raw else None
     try:
         if raw_audio:
             download_youtube_audio(video_id, raw_audio, cookies_browser=args.cookies)
@@ -692,7 +694,7 @@ Examples:
         print("  Continuing without audio...")
 
     if args.raw:
-        (gp_dir / f"{gp_file.stem}_sync.json").write_text(json.dumps(
+        (gp_dir / f"{raw_stem}_sync.json").write_text(json.dumps(
             build_raw_sync_data(meta, entries, video_id, points), indent=2))
 
     # Step 5: Sync GP file

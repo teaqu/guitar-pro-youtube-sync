@@ -642,13 +642,20 @@ class TestRaw:
              patch.object(sync.subprocess, "run",
                           side_effect=lambda cmd, **kw: Path(cmd[-1]).write_bytes(b"mp3")) as ffmpeg, \
              patch.object(sync, "download_youtube_audio",
-                          side_effect=lambda vid, path, **kw: path.write_bytes(b"mp3")) as dl:
+                          side_effect=lambda vid, path, **kw: path.write_bytes(vid.encode())) as dl:
             sync.main()
-        assert dl.call_count == 1
-        assert dl.call_args.args == ("AAA", tmp_path / "A - T_raw.mp3")
-        cmd = ffmpeg.call_args.args[0]
-        assert cmd[cmd.index("-ss") + 1] == "1.5"
-        assert json.loads((tmp_path / "A - T_sync.json").read_text()) == {
+            assert dl.call_count == 1
+            first_trim = ffmpeg.call_args.args[0]
+            argv.extend(["--video-index", "1"])
+            sync.main()
+        assert dl.call_count == 2
+        for entry in self.ENTRIES[:2]:
+            stem = "A - T_" + entry["videoId"]
+            assert (tmp_path / f"{stem}_raw.mp3").read_bytes() == entry["videoId"].encode()
+            data = json.loads((tmp_path / f"{stem}_sync.json").read_text())
+            assert (data["videoId"], data["points"]) == (entry["videoId"], entry["points"])
+        assert first_trim[first_trim.index("-ss") + 1] == "1.5"
+        assert json.loads((tmp_path / "A - T_AAA_sync.json").read_text()) == {
             "videoId": "AAA", "revisionId": 9, "artist": "A", "title": "T",
             "defaultTrack": 2, "popularTrackGuitar": 3, "points": [1.5, 3.5],
             "categories": {
